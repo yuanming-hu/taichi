@@ -1,6 +1,7 @@
 #include "async_engine.h"
 
 #include <memory>
+#include <future>
 
 #include "taichi/program/kernel.h"
 #include "taichi/program/program.h"
@@ -34,6 +35,7 @@ void ExecutionQueue::synchronize() {
   TI_INFO("Flushing execution queue with {} tasks", task_queue.size());
 
   std::unordered_set<uint64> to_be_compiled;
+  std::vector<std::future<bool>> tasks;
 
   for (int i = 0; i < (int)task_queue.size(); i++) {
     auto ker = task_queue[i];
@@ -41,20 +43,26 @@ void ExecutionQueue::synchronize() {
     if (compiled_func.find(h) == compiled_func.end() &&
         to_be_compiled.find(h) == to_be_compiled.end()) {
       to_be_compiled.insert(h);
-      compilation_workers.enqueue([&, ker, h, this]() {
-        {
-          TI_TRACE("Codegen...");
-          auto func = CodeGenCPU(ker.kernel, ker.stmt).codegen();
-          TI_TRACE("Codegen done");
-          std::lock_guard<std::mutex> _(mut);
-          compiled_func[h] = func;
-        }
-      });
+      tasks.push_back(
+          std::async(std::launch::async,
+                     // compilation_workers.enqueue(
+                     [&, ker, h, this]() -> bool {
+                       TI_TRACE("Codegen...");
+                       auto func = CodeGenCPU(ker.kernel, ker.stmt).codegen();
+                       TI_TRACE("Codegen done");
+                       std::lock_guard<std::mutex> _(mut);
+                       compiled_func[h] = func;
+                       return true;
+                     }));
     }
   }
-
   auto t = Time::get_time();
-  compilation_workers.flush();
+
+  for (auto &f : tasks) {
+    f.get();
+  }
+
+  // compilation_workers.flush();
   TI_WARN("Flushing time {:.3f} ms", (Time::get_time() - t) * 1000);
 
   while (!task_queue.empty()) {
@@ -81,7 +89,7 @@ void ExecutionQueue::synchronize() {
   launch_worker.flush();
 
   // uncomment for benchmarking
-  // clear_cache();
+  clear_cache();
 }
 
 ExecutionQueue::ExecutionQueue()
