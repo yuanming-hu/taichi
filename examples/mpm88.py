@@ -27,22 +27,20 @@ def substep():
     base = (x[p] * inv_dx - 0.5).cast(int)
     fx = x[p] * inv_dx - base.cast(float)
     w = [0.5 * ti.sqr(1.5 - fx), 0.75 - ti.sqr(fx - 1), 0.5 * ti.sqr(fx - 0.5)]
+    J[p] *= 1 + dt * C[p].trace()
     stress = -dt * p_vol * (J[p] - 1) * 4 * inv_dx * inv_dx * E
-    affine = ti.Matrix([[stress, 0], [0, stress]]) + p_mass * C[p]
-    for i in ti.static(range(3)):
-      for j in ti.static(range(3)):
+    affine = ti.Matrix.identity(ti.f32, 2) * stress + p_mass * C[p]
+    for i, j in ti.static(ti.ndrange(3, 3)):
         offset = ti.Vector([i, j])
         dpos = (offset.cast(float) - fx) * dx
         weight = w[i][0] * w[j][1]
-        grid_v[base + offset].atomic_add(
-            weight * (p_mass * v[p] + affine @ dpos))
-        grid_m[base + offset].atomic_add(weight * p_mass)
+        grid_v[base + offset] += weight * (p_mass * v[p] + affine @ dpos)
+        grid_m[base + offset] += weight * p_mass
 
   for i, j in grid_m:
     if grid_m[i, j] > 0:
       bound = 3
-      inv_m = 1 / grid_m[i, j]
-      grid_v[i, j] = inv_m * grid_v[i, j]
+      grid_v[i, j] = grid_v[i, j] / grid_m[i, j]
       grid_v[i, j][1] -= dt * 9.8
       if i < bound and grid_v[i, j][0] < 0:
         grid_v[i, j][0] = 0
@@ -59,20 +57,15 @@ def substep():
     w = [
         0.5 * ti.sqr(1.5 - fx), 0.75 - ti.sqr(fx - 1.0), 0.5 * ti.sqr(fx - 0.5)
     ]
-    new_v = ti.Vector.zero(ti.f32, 2)
-    new_C = ti.Matrix.zero(ti.f32, 2, 2)
-    for i in ti.static(range(3)):
-      for j in ti.static(range(3)):
-        dpos = ti.Vector([i, j]).cast(float) - fx
-        g_v = grid_v[base + ti.Vector([i, j])]
-        weight = w[i][0] * w[j][1]
-        new_v += weight * g_v
-        new_C += 4 * weight * ti.outer_product(g_v, dpos) * inv_dx
-    v[p] = new_v
+    v[p] = ti.Vector.zero(ti.f32, 2)
+    C[p] = ti.Matrix.zero(ti.f32, 2, 2)
+    for i, j in ti.static(ti.ndrange(3, 3)):
+      dpos = ti.Vector([i, j]).cast(float) - fx
+      g_v = grid_v[base + ti.Vector([i, j])]
+      weight = w[i][0] * w[j][1]
+      v[p] += weight * g_v
+      C[p] += 4 * weight * ti.outer_product(g_v, dpos) * inv_dx
     x[p] += dt * v[p]
-    J[p] *= 1 + dt * new_C.trace()
-    C[p] = new_C
-
 
 gui = ti.GUI("MPM88", (512, 512))
 
