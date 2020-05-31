@@ -55,7 +55,7 @@ def compute_rest_T():
 def compute_total_energy():
     for i in range(n_elements):
         currentT = compute_T(i)
-        F = currentT @ restT[i].inverse()
+        F = currentT @ restT[i].inversed()
         # NeoHookean
         I1 = (F @ ti.Matrix.transposed(F)).trace()
         J = ti.Matrix.determinant(F)
@@ -95,7 +95,7 @@ def grid_op():
             # center sticky circle
             dist = ti.Vector([i * dx - 0.5, j * dx - 0.5])
             if dist.norm_sqr() < 0.005:
-                dist = ti.Vector.normalized(dist)
+                dist = ti.Matrix.normalized(dist)
                 grid_v[i, j] -= dist * ti.dot(grid_v[i, j], dist)
 
             # box
