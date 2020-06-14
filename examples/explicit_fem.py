@@ -5,32 +5,29 @@ ti.init(arch=ti.cpu)
 
 real = ti.f32
 dim = 2
-n_particle_x = 50
-n_particle_y = 6
+n_nodes_x = 50
+n_nodes_y = 6
 node_mass = 1
-n_particles = n_particle_x * n_particle_y
-n_elements = (n_particle_x - 1) * (n_particle_y - 1) * 2
+n_nodes = n_nodes_x * n_nodes_y
+n_elements = (n_nodes_x - 1) * (n_nodes_y - 1) * 2
 dt = 1e-3
 dx = 1 / 32
 p_mass = 1
 p_vol = 1
-mu = 1
-la = 1
-element_V = 10
+E, nu = 1000, 0.3
+la = E * nu / ((1 + nu) * (1 - 2 * nu))
+mu = E / (2 * (1 + nu))
+element_V = 0.01
 
 scalar = lambda: ti.var(dt=real)
 vec = lambda: ti.Vector(dim, dt=real)
 mat = lambda: ti.Matrix(dim, dim, dt=real)
 
-x, v, C = vec(), vec(), mat()
-B = mat()
-total_energy = scalar()
-vertices = ti.var(ti.i32)
-
-ti.root.dense(ti.k, n_particles).place(x, x.grad, v, C)
-ti.root.dense(ti.i, n_elements).place(B, B.grad)
-ti.root.dense(ti.ij, (n_elements, 3)).place(vertices)
-ti.root.place(total_energy, total_energy.grad)
+x = ti.Vector(dim, dt=real, shape=n_nodes, needs_grad=True)
+v = ti.Vector(dim, dt=real, shape=n_nodes)
+B = ti.Matrix(dim, dim, dt=real, shape=n_elements)
+total_energy = ti.var(dt=real, shape=(), needs_grad=True)
+vertices = ti.var(dt=ti.i32, shape=(n_elements, 3))
 
 
 @ti.func
@@ -59,38 +56,48 @@ def compute_total_energy():
             I1 - 2) - mu * ti.log(J) + 0.5 * la * ti.log(J)**2
         total_energy[None] += element_energy_density * element_V
 
+sphere = ti.Vector([0.5, 0.2])
+sphere_radius = 0.1
 
 @ti.kernel
 def integrate():
     for p in x:
+        # Collide with sphere
+        offset = x[p] - sphere
+        if offset.norm() < sphere_radius:
+            n = offset.normalized()
+            x[p] = sphere + sphere_radius * n
+            v[p] = v[p] - v[p].dot(n) * n
         # Collide with ground
-        if x[p][1] < 0.5:
-            x[p][1] = 0.5
+        if x[p][1] < 0.2:
+            x[p][1] = 0.2
             v[p][1] = 0
-        v[p] = (v[p] + ((-x.grad[p] / node_mass) + ti.Vector([0, -10])) * dt) * math.exp(dt * -1)
+        v[p] = (v[p] + (
+            (-x.grad[p] / node_mass) + ti.Vector([0, -10])) * dt) * math.exp(
+                dt * -3)
         x[p] += dt * v[p]
 
 
 gui = ti.GUI("Linear tetrahedral FEM", (640, 640), background_color=0x112F41)
 
-mesh = lambda i, j: i * n_particle_y + j
+mesh = lambda i, j: i * n_nodes_y + j
 
-for i in range(n_particle_x):
-    for j in range(n_particle_y):
+for i in range(n_nodes_x):
+    for j in range(n_nodes_y):
         t = mesh(i, j)
-        x[t] = [0.1 + i * dx * 0.5, 0.7 + j * dx * 0.5]
+        x[t] = [0.1 + i * dx * 0.5, 0.7 + j * dx * 0.5 + i * dx * 0.1]
         v[t] = [0, -1]
 
 # build mesh
-for i in range(n_particle_x - 1):
-    for j in range(n_particle_y - 1):
+for i in range(n_nodes_x - 1):
+    for j in range(n_nodes_y - 1):
         # element id
-        eid = (i * (n_particle_y - 1) + j) * 2
+        eid = (i * (n_nodes_y - 1) + j) * 2
         vertices[eid, 0] = mesh(i, j)
         vertices[eid, 1] = mesh(i + 1, j)
         vertices[eid, 2] = mesh(i, j + 1)
 
-        eid = (i * (n_particle_y - 1) + j) * 2 + 1
+        eid = (i * (n_nodes_y - 1) + j) * 2 + 1
         vertices[eid, 0] = mesh(i, j + 1)
         vertices[eid, 1] = mesh(i + 1, j + 1)
         vertices[eid, 2] = mesh(i + 1, j)
@@ -108,6 +115,7 @@ while True:
         integrate()
 
     gui.circle((0.5, 0.5), radius=45, color=0x068587)
+    
     node_x = x.to_numpy()
     for i in range(n_elements):
         for j in range(3):
@@ -116,6 +124,6 @@ while True:
                      (node_x[b][0], node_x[b][1]),
                      radius=1,
                      color=0x4FB99F)
-    gui.circles(node_x, radius=1.5, color=0xF2B134)
-    gui.line((0.00, 0.03), (1.0, 0.03), color=0xFFFFFF, radius=3)
+    gui.circles(node_x, radius=1.5, color=0x3241f4)
+    gui.line((0.00, 0.2), (1.0, 0.2), color=0xFFFFFF, radius=3)
     gui.show()
