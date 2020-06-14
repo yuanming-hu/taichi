@@ -10,7 +10,7 @@ n_nodes_y = 6
 node_mass = 1
 n_nodes = n_nodes_x * n_nodes_y
 n_elements = (n_nodes_x - 1) * (n_nodes_y - 1) * 2
-dt = 1e-3
+dt = 3e-4
 dx = 1 / 32
 p_mass = 1
 p_vol = 1
@@ -19,15 +19,12 @@ la = E * nu / ((1 + nu) * (1 - 2 * nu))
 mu = E / (2 * (1 + nu))
 element_V = 0.01
 
-scalar = lambda: ti.var(dt=real)
-vec = lambda: ti.Vector(dim, dt=real)
-mat = lambda: ti.Matrix(dim, dim, dt=real)
-
 x = ti.Vector(dim, dt=real, shape=n_nodes, needs_grad=True)
 v = ti.Vector(dim, dt=real, shape=n_nodes)
 B = ti.Matrix(dim, dim, dt=real, shape=n_elements)
 total_energy = ti.var(dt=real, shape=(), needs_grad=True)
 vertices = ti.var(dt=ti.i32, shape=(n_elements, 3))
+sphere = ti.Vector(dim, dt=real, shape=())
 
 
 @ti.func
@@ -51,22 +48,24 @@ def compute_total_energy():
         F = D @ B[i]
         # NeoHookean
         I1 = (F @ F.transpose()).trace()
-        J = max(0.01, F.determinant())
+        J = max(0.2, F.determinant())
         element_energy_density = 0.5 * mu * (
-            I1 - 2) - mu * ti.log(J) + 0.5 * la * ti.log(J)**2
+            I1 - dim) - mu * ti.log(J) + 0.5 * la * ti.log(J)**2
         total_energy[None] += element_energy_density * element_V
 
-sphere = ti.Vector([0.5, 0.2])
+
+sphere[None] = [0.5, 0.2]
 sphere_radius = 0.1
+
 
 @ti.kernel
 def integrate():
     for p in x:
         # Collide with sphere
-        offset = x[p] - sphere
+        offset = x[p] - sphere[None]
         if offset.norm() < sphere_radius:
             n = offset.normalized()
-            x[p] = sphere + sphere_radius * n
+            x[p] = sphere[None] + sphere_radius * n
             v[p] = v[p] - v[p].dot(n) * n
         # Collide with ground
         if x[p][1] < 0.2:
@@ -77,8 +76,6 @@ def integrate():
                 dt * -3)
         x[p] += dt * v[p]
 
-
-gui = ti.GUI("Linear tetrahedral FEM", (640, 640), background_color=0x112F41)
 
 mesh = lambda i, j: i * n_nodes_y + j
 
@@ -106,16 +103,23 @@ compute_B()
 
 vertices_ = vertices.to_numpy()
 
+gui = ti.GUI("Linear tetrahedral FEM", (640, 640), background_color=0x112F41)
+
 while True:
-    for s in range(10):
+    for s in range(30):
         # Note that we are now differentiating the total energy w.r.t. the particle position.
         # Recall that F = - \partial (total_energy) / \partial x
         with ti.Tape(total_energy):
             compute_total_energy()
         integrate()
 
-    gui.circle((0.5, 0.5), radius=45, color=0x068587)
-    
+    while gui.get_event(ti.GUI.PRESS):
+        pass
+    if gui.is_pressed(ti.GUI.LMB):
+        sphere[None] = gui.get_cursor_pos()
+
+    gui.circle((sphere[None][0], sphere[None][1]), radius=63, color=0x068587)
+
     node_x = x.to_numpy()
     for i in range(n_elements):
         for j in range(3):
