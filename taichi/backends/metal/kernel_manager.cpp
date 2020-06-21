@@ -11,6 +11,7 @@
 #include "taichi/backends/metal/constants.h"
 #include "taichi/inc/constants.h"
 #include "taichi/math/arithmetic.h"
+#include "taichi/util/action_recorder.h"
 
 #ifdef TI_PLATFORM_OSX
 #include <sys/mman.h>
@@ -127,6 +128,13 @@ class CompiledMtlKernelBase {
         get_max_total_threads_per_threadgroup(pipeline_state_.get());
     const int num_groups =
         ((num_threads + num_threads_per_group - 1) / num_threads_per_group);
+
+    auto action = fmt::format(
+        "launching subkernel name={} num_groups={} threads_per_group={}\n",
+        kernel_attribs_.name, num_groups,
+        std::min(num_threads, num_threads_per_group));
+    get_action_recorder().record(action);
+
     dispatch_threadgroups(encoder.get(), num_groups,
                           std::min(num_threads, num_threads_per_group));
     end_encoding(encoder.get());
@@ -235,6 +243,12 @@ class CompiledTaichiKernel {
                params.mtl_source_code);
     }
     for (const auto &ka : params.ti_kernel_attribs->mtl_kernels_attribs) {
+      {
+        // dump metal
+        static int counter = 0;
+        std::ofstream ofs(fmt::format("shader{:05d}.mtl", counter++));
+        ofs << params.mtl_source_code.c_str();
+      }
       auto mtl_func = new_function_with_name(kernel_lib.get(), ka.name);
       TI_ASSERT(mtl_func != nullptr);
       // Note that CompiledMtlKernel doesn't own |kernel_func|.

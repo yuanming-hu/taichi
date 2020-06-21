@@ -111,6 +111,8 @@ void export_lang(py::module &m) {
       .def_readwrite("ad_stack_size", &CompileConfig::ad_stack_size)
       .def_readwrite("async", &CompileConfig::async)
       .def_readwrite("flatten_if", &CompileConfig::flatten_if);
+      .def_readwrite("max_gpu_block_dim", &CompileConfig::max_gpu_block_dim)
+      .def_readwrite("async", &CompileConfig::async);
 
   m.def("reset_default_compile_config",
         [&]() { default_compile_config = CompileConfig(); });

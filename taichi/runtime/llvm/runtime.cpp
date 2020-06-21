@@ -1247,7 +1247,7 @@ extern "C" {
 
 u32 cuda_rand_u32(Context *context) {
   auto state = &((LLVMRuntime *)context->runtime)
-                    ->rand_states[linear_thread_idx() % num_rand_states];
+                    ->rand_states[linear_tt hread_idx() % num_rand_states];
   u32 ret;
   auto lock = (Ptr)&state->lock;
 
