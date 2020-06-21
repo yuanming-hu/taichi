@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fstream>
 
 #include "taichi/common/core.h"
@@ -12,6 +14,7 @@ class ActionRecorder {
 
   ActionRecorder(std::string fn) {
     ofs.open(fn);
+    ofs << "Taichi action recorder" << std::endl;
   }
 
   class IndentGuard {
@@ -31,12 +34,12 @@ class ActionRecorder {
   }
 
   void record(std::string content) {
-    ofs << std::string(indentation * 2, ' ') + content;
+    ofs << "* " + std::string(indentation * 2, ' ') + content << std::endl;
     ofs.flush();
   }
 };
 
-ActionRecorder &get_action_recorder() {
+inline ActionRecorder &get_action_recorder() {
   static ActionRecorder rec("actions.txt");
   return rec;
 }

@@ -11,6 +11,7 @@
 #include "taichi/gui/gui.h"
 #include "taichi/math/svd.h"
 #include "taichi/util/statistics.h"
+#include "taichi/util/action_recorder.h"
 
 TI_NAMESPACE_BEGIN
 
@@ -110,7 +111,7 @@ void export_lang(py::module &m) {
       .def_readwrite("fast_math", &CompileConfig::fast_math)
       .def_readwrite("ad_stack_size", &CompileConfig::ad_stack_size)
       .def_readwrite("async", &CompileConfig::async)
-      .def_readwrite("flatten_if", &CompileConfig::flatten_if);
+      .def_readwrite("flatten_if", &CompileConfig::flatten_if)
       .def_readwrite("max_gpu_block_dim", &CompileConfig::max_gpu_block_dim)
       .def_readwrite("async", &CompileConfig::async);
 
@@ -563,6 +564,9 @@ void export_lang(py::module &m) {
   // A temporary option which will be removed soon in the future
   m.def("toggle_advanced_optimization",
         [](bool option) { advanced_optimization = option; });
+
+  m.def("record_action",
+        [](std::string rec) { get_action_recorder().record(rec); });
 }
 
 TI_NAMESPACE_END

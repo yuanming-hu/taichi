@@ -130,10 +130,12 @@ class CompiledMtlKernelBase {
         ((num_threads + num_threads_per_group - 1) / num_threads_per_group);
 
     auto action = fmt::format(
-        "launching subkernel name={} num_groups={} threads_per_group={}\n",
+        "Launching subkernel name={} num_groups={} threads_per_group={}",
         kernel_attribs_.name, num_groups,
         std::min(num_threads, num_threads_per_group));
-    get_action_recorder().record(action);
+    if (kernel_attribs_.name.find("jit_evaluator") == std::string::npos) {
+      get_action_recorder().record(action);
+    }
 
     dispatch_threadgroups(encoder.get(), num_groups,
                           std::min(num_threads, num_threads_per_group));
@@ -242,13 +244,17 @@ class CompiledTaichiKernel {
       TI_ERROR("Failed to compile Metal kernel! Generated code:\n\n{}",
                params.mtl_source_code);
     }
-    for (const auto &ka : params.ti_kernel_attribs->mtl_kernels_attribs) {
-      {
-        // dump metal
-        static int counter = 0;
-        std::ofstream ofs(fmt::format("shader{:05d}.mtl", counter++));
-        ofs << params.mtl_source_code.c_str();
-      }
+    if (params.taichi_kernel_name.find("jit_evaluator") == std::string::npos) {
+      // dump metal
+      static int counter = 0;
+      auto fn = fmt::format("shader{:05d}.mtl", counter++);
+      get_action_recorder().record(
+          fmt::format("Taichi kernel {} saved to shader file {}",
+                      params.taichi_kernel_name, fn));
+      std::ofstream ofs(fn);
+      ofs << params.mtl_source_code.c_str();
+    }
+    for (const auto &ka : *(params.mtl_kernels_attribs)) {
       auto mtl_func = new_function_with_name(kernel_lib.get(), ka.name);
       TI_ASSERT(mtl_func != nullptr);
       // Note that CompiledMtlKernel doesn't own |kernel_func|.
@@ -316,6 +322,9 @@ class HostMetalCtxBlitter {
       const auto &arg = ctx_attribs_->args()[i];
       const auto dt = arg.dt;
       char *device_ptr = base + arg.offset_in_mem;
+      get_action_recorder().record(fmt::format(
+          "Copying kernel argument[{}] to context buffer (offset={} B)", i,
+          arg.offset_in_mem));
       if (arg.is_array) {
         const void *host_ptr = host_ctx_->get_arg<void *>(i);
         std::memcpy(device_ptr, host_ptr, arg.stride);
@@ -436,6 +445,8 @@ class KernelManager::Impl {
                                             root_mem_->size());
       TI_ASSERT(root_buffer_ != nullptr);
       TI_DEBUG("Metal root buffer size: {} bytes", root_mem_->size());
+      get_action_recorder().record(
+          fmt::format("Metal root buffer size: {} bytes", root_mem_->size()));
     }
 
     global_tmps_mem_ = std::make_unique<BufferMemoryView>(
@@ -454,6 +465,10 @@ class KernelManager::Impl {
         "Metal runtime buffer size: {} bytes (sizeof(Runtime)={} "
         "memory_pool={})",
         runtime_mem_->size(), compiled_structs_.runtime_size, mem_pool_bytes);
+    get_action_recorder().record(fmt::format(
+        "Metal runtime buffer size: {} bytes (sizeof(Runtime)={} "
+        "memory_pool={})",
+        runtime_mem_->size(), compiled_structs_.runtime_size, mem_pool_bytes));
     TI_ASSERT_INFO(
         runtime_buffer_ != nullptr,
         "Failed to allocate Metal runtime buffer, requested {} bytes",
@@ -502,7 +517,7 @@ class KernelManager::Impl {
     auto &ctk = *compiled_taichi_kernels_.find(taichi_kernel_name)->second;
     auto ctx_blitter = HostMetalCtxBlitter::maybe_make(ctk, ctx);
     if (config_->verbose_kernel_launches) {
-      TI_INFO("Lauching Taichi kernel <{}>", taichi_kernel_name);
+      TI_INFO("Launching Taichi kernel <{}>", taichi_kernel_name);
     }
 
     InputBuffersMap input_buffers = {
@@ -587,7 +602,7 @@ class KernelManager::Impl {
     }
     size_t addr_offset = sizeof(SNodeMeta) * max_snodes;
     addr += addr_offset;
-    TI_DEBUG("Initialized SNodeMeta, size={} accumuated={}", addr_offset,
+    TI_DEBUG("Initialized SNodeMeta, size={} accumulated={}", addr_offset,
              (addr - addr_begin));
     // init snode_extractors
     for (int i = 0; i < max_snodes; ++i) {
@@ -611,7 +626,7 @@ class KernelManager::Impl {
     }
     addr_offset = sizeof(SNodeExtractors) * max_snodes;
     addr += addr_offset;
-    TI_DEBUG("Initialized SNodeExtractors, size={} accumuated={}", addr_offset,
+    TI_DEBUG("Initialized SNodeExtractors, size={} accumulated={}", addr_offset,
              (addr - addr_begin));
     // init snode_lists
     ListManagerData *const rtm_list_head =

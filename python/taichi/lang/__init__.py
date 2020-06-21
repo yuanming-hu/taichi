@@ -8,6 +8,7 @@ import functools
 import os
 
 core = taichi_lang_core
+record_action = core.record_action
 runtime = get_runtime()
 
 i = indices(0)
