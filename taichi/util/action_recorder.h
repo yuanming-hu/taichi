@@ -14,7 +14,7 @@ class ActionRecorder {
 
   ActionRecorder(std::string fn) {
     ofs.open(fn);
-    ofs << "Taichi action recorder" << std::endl;
+    ofs << "Taichi Kernel Action Recorder" << std::endl;
   }
 
   class IndentGuard {

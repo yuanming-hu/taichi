@@ -235,7 +235,7 @@ void Kernel::set_arg_nparray(int i, uint64 ptr, uint64 size) {
   TI_ASSERT_INFO(args[i].is_nparray,
                  "Assigning numpy array to scalar argument is not allowed");
   get_action_recorder().record(fmt::format(
-      "Setting argument {}.argument[{}] = {:x} (external pointer) size={}B",
+      "Setting argument {}.argument[{}] = 0x{:x} (external pointer) size={}B",
       name, i, ptr, size));
   args[i].size = size;
   program.context.set_arg(i, ptr);

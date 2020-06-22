@@ -285,6 +285,12 @@ class CompiledTaichiKernel {
     if (!ctx_attribs.empty()) {
       ctx_mem = std::make_unique<BufferMemoryView>(ctx_attribs.total_bytes(),
                                                    params.mem_pool);
+      if (params.taichi_kernel_name.find("jit_evaluator") ==
+          std::string::npos) {
+        get_action_recorder().record(fmt::format(
+            "Allocating context (ctx) buffer for kernel {}: size={}B",
+            params.taichi_kernel_name, ctx_attribs.total_bytes()));
+      }
       ctx_buffer =
           new_mtl_buffer_no_copy(device, ctx_mem->ptr(), ctx_mem->size());
     }
@@ -322,9 +328,10 @@ class HostMetalCtxBlitter {
       const auto &arg = ctx_attribs_->args()[i];
       const auto dt = arg.dt;
       char *device_ptr = base + arg.offset_in_mem;
-      get_action_recorder().record(fmt::format(
-          "Copying kernel argument[{}] to context buffer (offset={} B)", i,
-          arg.offset_in_mem));
+      if (kernel_name.find("jit_evaluator") == std::string::npos)
+        get_action_recorder().record(fmt::format(
+            "Copying kernel {}.argument[{}] to context buffer (offset={} B)",
+            kernel_name, i, arg.offset_in_mem));
       if (arg.is_array) {
         const void *host_ptr = host_ctx_->get_arg<void *>(i);
         std::memcpy(device_ptr, host_ptr, arg.stride);
@@ -405,13 +412,19 @@ class HostMetalCtxBlitter {
 
   static std::unique_ptr<HostMetalCtxBlitter> maybe_make(
       const CompiledTaichiKernel &kernel,
-      Context *ctx) {
+      Context *ctx,
+      std::string name = "") {
     if (kernel.ctx_attribs.empty()) {
       return nullptr;
     }
-    return std::make_unique<HostMetalCtxBlitter>(&kernel.ctx_attribs, ctx,
-                                                 kernel.ctx_mem.get());
+    auto ret = std::make_unique<HostMetalCtxBlitter>(&kernel.ctx_attribs, ctx,
+                                                     kernel.ctx_mem.get());
+    ret->kernel_name = name;
+    return ret;
   }
+
+ public:
+  std::string kernel_name;
 
  private:
   const KernelContextAttributes *const ctx_attribs_;
@@ -451,6 +464,10 @@ class KernelManager::Impl {
 
     global_tmps_mem_ = std::make_unique<BufferMemoryView>(
         taichi_global_tmp_buffer_size, mem_pool_);
+    get_action_recorder().record(
+        fmt::format("Allocating global tmp buffer: "
+                    "size={}B",
+                    taichi_global_tmp_buffer_size));
     global_tmps_buffer_ = new_mtl_buffer_no_copy(
         device_.get(), global_tmps_mem_->ptr(), global_tmps_mem_->size());
     TI_ASSERT(global_tmps_buffer_ != nullptr);
@@ -515,7 +532,8 @@ class KernelManager::Impl {
   void launch_taichi_kernel(const std::string &taichi_kernel_name,
                             Context *ctx) {
     auto &ctk = *compiled_taichi_kernels_.find(taichi_kernel_name)->second;
-    auto ctx_blitter = HostMetalCtxBlitter::maybe_make(ctk, ctx);
+    auto ctx_blitter =
+        HostMetalCtxBlitter::maybe_make(ctk, ctx, taichi_kernel_name);
     if (config_->verbose_kernel_launches) {
       TI_INFO("Launching Taichi kernel <{}>", taichi_kernel_name);
     }
