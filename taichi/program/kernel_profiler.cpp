@@ -35,17 +35,28 @@ void KernelProfilerBase::print() {
   sync();
   fmt::print("{}\n", title());
   fmt::print(
-      "[  frac.     total   count |      min       avg       max   ] Kernel name\n");
+      "========================================================================"
+      "=\n");
+  fmt::print(
+      "[  frac.     total   count |      min       avg       max   ] Kernel "
+      "name\n");
   std::sort(records.begin(), records.end());
   for (auto &rec : records) {
     auto fraction = rec.total / total_time * 100.0f;
-    fmt::print(
-        "[{:6.2f}% {:7.3f} s {:6d}x |{:9.3f} {:9.3f} {:9.3f} ms] {}\n",
-        fraction, rec.total / 1000.0f, rec.counter, rec.min,
-        rec.total / rec.counter, rec.max, rec.name);
+    fmt::print("[{:6.2f}% {:7.3f} s {:6d}x |{:9.3f} {:9.3f} {:9.3f} ms] {}\n",
+               fraction, rec.total / 1000.0f, rec.counter, rec.min,
+               rec.total / rec.counter, rec.max, rec.name);
   }
-  fmt::print("[100.00%] Total kernel execution time: {:7.3f} s   number of records: {}\n",
-             total_time / 1000.0f, records.size());
+  fmt::print(
+      "------------------------------------------------------------------------"
+      "-\n");
+  fmt::print(
+      "[100.00%] Total kernel execution time: {:7.3f} s   number of records: "
+      "{}\n",
+      total_time / 1000.0f, records.size());
+  fmt::print(
+      "========================================================================"
+      "=\n");
 }
 
 namespace {

@@ -926,9 +926,66 @@ void clear_list(LLVMRuntime *runtime, StructMeta *parent, StructMeta *child) {
  * The element list of a SNode, maintains pointers to its instances, and
  * instances' parents' coordinates
  */
-void element_listgen(LLVMRuntime *runtime,
-                     StructMeta *parent,
-                     StructMeta *child) {
+
+// For the root node there is only one container,
+// therefore we use a special kernel for more parallelism.
+void element_listgen_root(LLVMRuntime *runtime,
+                          StructMeta *parent,
+                          StructMeta *child) {
+  // If there's just one element in the parent list, we need to use the blocks
+  // (instead of threads) to split the parent container
+  auto parent_list = runtime->element_lists[parent->snode_id];
+  auto child_list = runtime->element_lists[child->snode_id];
+  // Cache the func pointers here for better compiler optimization
+  auto parent_refine_coordinates = parent->refine_coordinates;
+  auto parent_is_active = parent->is_active;
+  auto parent_lookup_element = parent->lookup_element;
+  auto child_get_num_elements = child->get_num_elements;
+  auto child_from_parent_element = child->from_parent_element;
+#if ARCH_cuda
+  // Each block processes a parent container
+  int j_start = block_idx();
+  int j_step = grid_dim();
+  // Each thread processes an element of the parent container
+  int c_start = thread_idx();
+  int c_step = block_dim();
+#else
+  int j_start = 0;
+  int j_step = 1;
+  int c_start = 0;
+  int c_step = 1;
+#endif
+  auto element = parent_list->get<Element>(0);
+
+  int j_lower = element.loop_bounds[0] + j_start;
+  int j_higher = element.loop_bounds[1];
+  for (int j = j_lower; j < j_higher; j += j_step) {
+    PhysicalCoordinates refined_coord;
+    parent_refine_coordinates(&element.pcoord, &refined_coord, j);
+    if (parent_is_active((Ptr)parent, element.element, j)) {
+      auto ch_element = parent_lookup_element((Ptr)parent, element.element, j);
+      ch_element = child_from_parent_element((Ptr)ch_element);
+      auto ch_num_elements = child_get_num_elements((Ptr)child, ch_element);
+      auto ch_element_size =
+          std::min(ch_num_elements, taichi_listgen_max_element_size);
+
+      for (int c = c_start; c * ch_element_size < ch_num_elements;
+           c += c_step) {
+        Element elem;
+        elem.element = ch_element;
+        elem.loop_bounds[0] = c * ch_element_size;
+        elem.loop_bounds[1] =
+            std::min((c + 1) * ch_element_size, ch_num_elements);
+        elem.pcoord = refined_coord;
+        child_list->append(&elem);
+      }
+    }
+  }
+}
+
+void element_listgen_nonroot(LLVMRuntime *runtime,
+                             StructMeta *parent,
+                             StructMeta *child) {
   auto parent_list = runtime->element_lists[parent->snode_id];
   int num_parent_elements = parent_list->size();
   auto child_list = runtime->element_lists[child->snode_id];
