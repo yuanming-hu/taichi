@@ -38,7 +38,7 @@ void KernelProfilerBase::print() {
       "========================================================================"
       "=\n");
   fmt::print(
-      "[  frac.     total   count |      min       avg       max   ] Kernel "
+      "[      %     total   count |      min       avg       max   ] Kernel "
       "name\n");
   std::sort(records.begin(), records.end());
   for (auto &rec : records) {
