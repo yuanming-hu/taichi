@@ -939,8 +939,10 @@ void element_listgen(LLVMRuntime *runtime,
   auto child_get_num_elements = child->get_num_elements;
   auto child_from_parent_element = child->from_parent_element;
 #if ARCH_cuda
+  // Each block processes a parent container
   int i_start = block_idx();
   int i_step = grid_dim();
+  // Each thread processes an element of the parent container
   int j_start = thread_idx();
   int j_step = block_dim();
 #else
@@ -949,16 +951,10 @@ void element_listgen(LLVMRuntime *runtime,
   int j_start = 0;
   int j_step = 1;
 #endif
-  int parent_split =
-      std::max(parent->max_num_elements / taichi_listgen_max_element_size, 1);
-  // Note: if we split children, then parent doesn't need an extra loop (size
-  // always <= taichi_listgen_max_element_size)
-  int range = (parent->max_num_elements + parent_split - 1) / parent_split;
-  for (int i = i_start; i < num_parent_elements * parent_split; i += i_step) {
-    auto element = parent_list->get<Element>(i / parent_split);
-    int split_id = i % parent_split;
-    int j_lower = element.loop_bounds[0] + split_id * range + j_start;
-    int j_higher = std::min(element.loop_bounds[1], j_lower + range);
+  for (int i = i_start; i < num_parent_elements; i += i_step) {
+    auto element = parent_list->get<Element>(i);
+    int j_lower = element.loop_bounds[0] + j_start;
+    int j_higher = element.loop_bounds[1];
     for (int j = j_lower; j < j_higher; j += j_step) {
       PhysicalCoordinates refined_coord;
       parent_refine_coordinates(&element.pcoord, &refined_coord, j);
