@@ -953,12 +953,27 @@ void element_listgen(LLVMRuntime *runtime,
       std::max(parent->max_num_elements / taichi_listgen_max_element_size, 1);
   // Note: if we split children, then parent doesn't need an extra loop (size
   // always <= taichi_listgen_max_element_size)
+
+  auto sid = child->snode_id;
+  if (sid == 24 && block_idx() == 0 && thread_idx() == 0) {
+    // atomic_max_i32(&child_list->num_elements, 0);
+    taichi_printf(runtime, "parent_max_num_elements %d, parent_split %d\n",
+                  parent->max_num_elements, parent_split);
+    taichi_printf(runtime, "j_step %d, parent_split %d\n",
+                  parent->max_num_elements, parent_split);
+  } else {
+  }
+
   int range = (parent->max_num_elements + parent_split - 1) / parent_split;
+  // i: parent element id
   for (int i = i_start; i < num_parent_elements * parent_split; i += i_step) {
     auto element = parent_list->get<Element>(i / parent_split);
     int split_id = i % parent_split;
+    // split parent into multiple parts
     int j_lower = element.loop_bounds[0] + split_id * range + j_start;
     int j_higher = std::min(element.loop_bounds[1], j_lower + range);
+
+    // j: child element id
     for (int j = j_lower; j < j_higher; j += j_step) {
       PhysicalCoordinates refined_coord;
       parent_refine_coordinates(&element.pcoord, &refined_coord, j);
@@ -969,6 +984,7 @@ void element_listgen(LLVMRuntime *runtime,
         auto ch_num_elements = child_get_num_elements((Ptr)child, ch_element);
         auto ch_element_size =
             std::min(ch_num_elements, taichi_listgen_max_element_size);
+        // for each active child container, enumerate the element chunks in the container
         for (int ch_lower = 0; ch_lower < ch_num_elements;
              ch_lower += ch_element_size) {
           Element elem;
@@ -981,6 +997,10 @@ void element_listgen(LLVMRuntime *runtime,
         }
       }
     }
+  }
+  if (thread_idx() == 0 && block_idx() == 0) {
+    taichi_printf(runtime, "SNode %d list length %d\n", child->snode_id,
+                  child_list->size());
   }
 }
 
@@ -1027,6 +1047,12 @@ void parallel_struct_for(Context *context,
 #if ARCH_cuda
   int i = block_idx();
   const auto part_size = element_size / element_split;
+  if (block_idx() == 0 && thread_idx() == 0) {
+    taichi_printf(
+        context->runtime,
+        "task list len %d, element_size %d, element_split %d, part_size %d\n",
+        list_tail, element_size, element_split, part_size);
+  }
   while (true) {
     int element_id = i / element_split;
     if (element_id >= list_tail)

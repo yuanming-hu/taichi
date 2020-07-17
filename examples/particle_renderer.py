@@ -497,6 +497,7 @@ def main():
             last_t = time.time()
             gui.set_image(img)
             gui.show()
+    ti.print_profile_info()
 
 
 if __name__ == '__main__':
