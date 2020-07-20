@@ -131,10 +131,10 @@ for frame in range(2000000):
             substep_PIC()
     scheme = 'APIC' if use_apic else 'PIC'
     gui.clear(0x112F41)
+    gui.circles(x.to_numpy(), radius=2, color=0x068587)
     gui.text('(D) Reset as dilation', pos=(0.05, 0.25))
     gui.text('(T) Reset as translation', pos=(0.05, 0.2))
     gui.text('(R) Reset as rotation', pos=(0.05, 0.15))
     gui.text('(S) Reset as shearing', pos=(0.05, 0.1))
     gui.text(f'(A) Scheme={scheme}', pos=(0.05, 0.05))
-    gui.circles(x.to_numpy(), radius=3, color=0x068587)
     gui.show()
