@@ -3,11 +3,12 @@ import random
 ti.init(arch=ti.gpu)
 
 dim = 2
-n_particles = 4096
+n_particles = 8192
 n_grid = 32
 dx = 1 / n_grid
 inv_dx = 1 / dx
-dt = 2.0e-4
+dt = 2.0e-3
+use_apic = False
 
 
 x = ti.Vector(dim, dt=ti.f32, shape=n_particles)
@@ -19,23 +20,6 @@ grid_m = ti.var(dt=ti.f32, shape=(n_grid, n_grid))
 @ti.func
 def clamp_pos(pos):
     return ti.Vector([max(min(0.95, pos[0]), 0.05), max(min(0.95, pos[1]), 0.05)])
-
-@ti.func
-def sample_v(pos):
-    base = (pos * inv_dx - 0.5).cast(int)
-    fx = pos * inv_dx - base.cast(float)
-    w = [
-        0.5 * (1.5 - fx) ** 2, 0.75 - (fx - 1.0) ** 2, 0.5 * (fx - 0.5) ** 2
-    ]
-    new_v = ti.Vector.zero(ti.f32, 2)
-    for i in ti.static(range(3)):
-        for j in ti.static(range(3)):
-            g_v = grid_v[base + ti.Vector([i, j])]
-            weight = w[i][0] * w[j][1]
-            new_v += weight * g_v
-            
-    return new_v
-
 
 @ti.kernel
 def substep_PIC():
@@ -114,16 +98,43 @@ def substep_APIC():
         v[p] = new_v
         C[p] = new_C
 
-for i in range(n_particles):
-    x[i] = [random.random() * 0.6 + 0.2, random.random() * 0.6 + 0.2]
-    v[i] = [x[i][1] - 0.5, 0.5 - x[i][0]]
+@ti.kernel
+def reset(mode: ti.i32):
+    for i in range(n_particles):
+        x[i] = [ti.random() * 0.6 + 0.2, ti.random() * 0.6 + 0.2]
+        if mode == 0:
+            v[i] = [1, 0]
+        elif mode == 1:
+            v[i] = [x[i][1] - 0.5, 0.5 - x[i][0]]
+        elif mode == 2:
+            v[i] = [0, x[i][0] - 0.5]
+        else:
+            v[i] = [0, x[i][1] - 0.5]
+        
+reset(1)
 
-gui = ti.GUI("PIC/APIC", (512, 512))
-for frame in range(20000):
-    for s in range(50):
+gui = ti.GUI("PIC v.s. APIC", (512, 512))
+for frame in range(2000000):
+    if gui.get_event(ti.GUI.PRESS):
+        if gui.event.key == 't': reset(0)
+        elif gui.event.key == 'r': reset(1)
+        elif gui.event.key == 's': reset(2)
+        elif gui.event.key == 'd': reset(3)
+        elif gui.event.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]: break
+        elif gui.event.key == 'a': use_apic = not use_apic
+    for s in range(10):
         grid_v.fill([0, 0])
         grid_m.fill(0)
-        substep_APIC()
+        if use_apic:
+            substep_APIC()
+        else:
+            substep_PIC()
+    scheme = 'APIC' if use_apic else 'PIC'
     gui.clear(0x112F41)
+    gui.text('(D) Reset as dilation', pos=(0.05, 0.25))
+    gui.text('(T) Reset as translation', pos=(0.05, 0.2))
+    gui.text('(R) Reset as rotation', pos=(0.05, 0.15))
+    gui.text('(S) Reset as shearing', pos=(0.05, 0.1))
+    gui.text(f'(A) Scheme={scheme}', pos=(0.05, 0.05))
     gui.circles(x.to_numpy(), radius=3, color=0x068587)
     gui.show()
