@@ -12,10 +12,12 @@ p_mass = p_vol * p_rho
 E, nu = 5e3, 0.2 # Young's modulus and Poisson's ratio
 mu_0, lambda_0 = E / (2 * (1 + nu)), E * nu / ((1+nu) * (1 - 2 * nu)) # Lame parameters
 
-x = ti.Vector(2, dt=ti.f32, shape=n_particles) # position
+ti.field
+
+x = ti.Vector.field(2, dtype=ti.f32, shape=n_particles) # position
 v = ti.Vector(2, dt=ti.f32, shape=n_particles) # velocity
 C = ti.Matrix(2, 2, dt=ti.f32, shape=n_particles) # affine velocity field
-F = ti.Matrix(2, 2, dt=ti.f32, shape=n_particles) # deformation gradient
+F = ti.Matrix.field(2, 2, dt=ti.f32, shape=n_particles) # deformation gradient
 material = ti.var(dt=ti.i32, shape=n_particles) # material id
 Jp = ti.var(dt=ti.f32, shape=n_particles) # plastic deformation
 grid_v = ti.Vector(2, dt=ti.f32, shape=(n_grid, n_grid)) # grid node momentum/velocity
