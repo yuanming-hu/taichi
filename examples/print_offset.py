@@ -9,9 +9,9 @@ m = 8
 a = ti.field(dtype=ti.i32)
 # ti.root.dense(ti.ij, (4, 8)).place(a)
 # ti.root.dense(ti.ij, (2, 4)).dense(ti.ij, 2).place(a)
-# ti.root.dense(ti.ij, (1, 2)).dense(ti.ij, 2).dense(ti.ij, 2).place(a)
+ti.root.dense(ti.ij, (1, 2)).dense(ti.ij, 2).dense(ti.ij, 2).place(a)
 # ti.root.dense(ti.i, 4).dense(ti.j, 8).place(a)
-ti.root.dense(ti.i, 1).dense(ti.j, 8).dense(ti.i, 4).place(a)
+# ti.root.dense(ti.i, 1).dense(ti.j, 8).dense(ti.i, 4).place(a)
 
 @ti.kernel
 def fill():
@@ -22,6 +22,8 @@ def fill():
 fill()
 print(a.to_numpy())
 
+ti.get_runtime().prog.visualize_layout('layout.pdf')
+
 gui = ti.GUI('layout', res=(256, 512), background_color=0xFFFFFF)
 
 while True:
@@ -31,5 +33,5 @@ while True:
         gui.line(begin=(i / n, 0), end=(i / n, 1), radius=2, color=0x000000)
     for i in range(n):
         for j in range(m):
-            gui.text(f'{a[i, j]}', (i / n, j / m), color=0x0)
+            gui.text(f'{a[i, j]}', ((i + 0.3) / n, (j + 0.75) / m), font_size=30, color=0x0)
     gui.show()

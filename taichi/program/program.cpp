@@ -524,9 +524,15 @@ void Program::visualize_layout(const std::string &fn) {
         if (snode->extractors[i].active) {
           int nb = snode->extractors[i].num_bits;
           int start = snode->extractors[i].start + nb;
+          /*
           indices += fmt::format(
-              R"($\mathbf{{{}}}^{{\mathbf{{{}b}}:{}}}_{{\mathbf{{{}b}}:{}}}$)",
+              R"($\mathbf{{{}}}^{\mathbf{{{}b}}:{}}}_{{\mathbf{{{}b}}:{}}}$)",
               std::string(1, 'I' + i), start, latex_short_digit(1 << start), nb,
+              latex_short_digit(1 << nb));
+              */
+          indices += fmt::format(
+              R"($\mathbf{{{}}}^{{{}}}_{{{}}}$)",
+              std::string(1, 'I' + i), latex_short_digit(1 << start),
               latex_short_digit(1 << nb));
         }
       }

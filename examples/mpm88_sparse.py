@@ -1,5 +1,5 @@
 import taichi as ti
-ti.init(arch=ti.gpu)
+ti.init(arch=ti.cpu)
 
 n_particles = 8192 * 3
 n_grid = 512
@@ -14,7 +14,8 @@ bound = 3
 E = 400
 
 x = ti.Vector.field(2, ti.f32, n_particles)
-v = ti.Vector.field(2, ti.f32, n_particles) C = ti.Matrix.field(2, 2, ti.f32, n_particles)
+v = ti.Vector.field(2, ti.f32, n_particles)
+C = ti.Matrix.field(2, 2, ti.f32, n_particles)
 J = ti.field(ti.f32, n_particles)
 
 block_size = 16
