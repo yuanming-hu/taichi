@@ -255,6 +255,10 @@ void export_lang(py::module &m) {
     return Activate(snode, indices);
   });
 
+  m.def("expr_get_addr", [](SNode *snode, const ExprGroup &indices) {
+    return Expr::make<SNodeOpExpression>(snode, SNodeOpType::get_addr, indices);
+  });
+
   m.def("insert_append",
         [](SNode *snode, const ExprGroup &indices, const Expr &val) {
           return Append(snode, indices, val);

@@ -151,6 +151,7 @@ std::string atomic_op_type_name(AtomicOpType type);
 enum class SNodeOpType : int {
   is_active,
   length,
+  get_addr,
   activate,
   deactivate,
   append,

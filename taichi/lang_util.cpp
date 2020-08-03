@@ -90,11 +90,19 @@ std::string data_type_name(DataType t) {
 std::string data_type_format(DataType dt) {
   if (dt == DataType::i32) {
     return "%d";
+  } else if (dt == DataType::u32) {
+    return "%u";
   } else if (dt == DataType::i64) {
 #if defined(TI_PLATFORM_UNIX)
     return "%lld";
 #else
     return "%I64d";
+#endif
+  } else if (dt == DataType::u64) {
+#if defined(TI_PLATFORM_UNIX)
+    return "%llu";
+#else
+    return "%I64u";
 #endif
   } else if (dt == DataType::f32) {
     return "%f";
@@ -233,6 +241,7 @@ std::string snode_op_type_name(SNodeOpType type) {
 #define REGISTER_TYPE(i) type_names[SNodeOpType::i] = #i;
     REGISTER_TYPE(is_active);
     REGISTER_TYPE(length);
+    REGISTER_TYPE(get_addr);
     REGISTER_TYPE(activate);
     REGISTER_TYPE(deactivate);
     REGISTER_TYPE(append);

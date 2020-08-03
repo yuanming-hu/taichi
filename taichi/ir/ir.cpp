@@ -967,6 +967,8 @@ void SNodeOpExpression::flatten(FlattenContext *ctx) {
                   "ti.append only works on i32/f32 nodes.");
     } else if (op_type == SNodeOpType::length) {
       ctx->push_back<SNodeOpStmt>(SNodeOpType::length, snode, ptr, nullptr);
+    } else {
+      ctx->push_back<SNodeOpStmt>(SNodeOpType::get_addr, snode, ptr, nullptr);
     }
   }
   stmt = ctx->back_stmt();

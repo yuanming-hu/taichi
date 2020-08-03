@@ -108,7 +108,11 @@ class TypeCheck : public IRVisitor {
   }
 
   void visit(SNodeOpStmt *stmt) {
-    stmt->ret_type = VectorType(1, DataType::i32);
+    if (stmt->op_type == SNodeOpType::get_addr) {
+      stmt->ret_type = VectorType(1, DataType::u64);
+    } else {
+      stmt->ret_type = VectorType(1, DataType::i32);
+    }
   }
 
   void visit(GlobalPtrStmt *stmt) {
