@@ -1,6 +1,6 @@
 import taichi as ti
 
-ti.init(arch=ti.cpu, print_ir=True)
+ti.init(arch=ti.cpu)
 
 n = 512
 x = ti.var(ti.f32)
