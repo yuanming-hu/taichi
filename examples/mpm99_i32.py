@@ -19,12 +19,16 @@ material = ti.field(dtype=int, shape=n_particles) # material id
 Jp = ti.field(dtype=float, shape=n_particles) # plastic deformation
 grid_v = ti.Vector.field(2, dtype=float, shape=(n_grid, n_grid)) # grid node momentum/velocity
 grid_m = ti.field(dtype=float, shape=(n_grid, n_grid)) # grid node mass
+grid_v_int = ti.Vector.field(2, dtype=int, shape=(n_grid, n_grid)) # grid node momentum/velocity
+grid_m_int = ti.field(dtype=int, shape=(n_grid, n_grid)) # grid node mass
 
 @ti.kernel
 def substep():
   for i, j in grid_m:
     grid_v[i, j] = [0, 0]
     grid_m[i, j] = 0
+    grid_v_int[i, j] = [0, 0]
+    grid_m_int[i, j] = 0
   for p in x: # Particle state update and scatter to grid (P2G)
     base = (x[p] * inv_dx - 0.5).cast(int)
     fx = x[p] * inv_dx - base.cast(float)
@@ -57,11 +61,15 @@ def substep():
       offset = ti.Vector([i, j])
       dpos = (offset.cast(float) - fx) * dx
       weight = w[i][0] * w[j][1]
-      grid_v[base + offset] += weight * (p_mass * v[p] + affine @ dpos)
-      grid_m[base + offset] += weight * p_mass
+      # grid_v[base + offset] += weight * (p_mass * v[p] + affine @ dpos)
+      # grid_m[base + offset] += weight * p_mass
+      grid_v_int[base + offset] += int(weight * (p_mass * v[p] + affine @ dpos) * (2 ** 30))
+      grid_m_int[base + offset] += int(weight * p_mass * (2 ** 30))
+      # print(weight, p_mass, int(weight * p_mass * (2 ** 20)))
   for i, j in grid_m:
-    if grid_m[i, j] > 0: # No need for epsilon here
-      grid_v[i, j] = (1.0 / grid_m[i, j]) * grid_v[i, j] # Momentum to velocity
+    if grid_m_int[i, j] > 0: # No need for epsilon here
+      # grid_v[i, j] = (1.0 / grid_m[i, j]) * grid_v[i, j] # Momentum to velocity
+      grid_v[i, j] = (1.0 / grid_m_int[i, j]) * grid_v_int[i, j] # Momentum to velocity
       grid_v[i, j][1] -= dt * 50 # gravity
       if i < 3 and grid_v[i, j][0] < 0:          grid_v[i, j][0] = 0 # Boundary conditions
       if i > n_grid - 3 and grid_v[i, j][0] > 0: grid_v[i, j][0] = 0
