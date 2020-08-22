@@ -21,6 +21,10 @@ grid_v = ti.Vector.field(2, dtype=float, shape=(n_grid, n_grid)) # grid node mom
 grid_m = ti.field(dtype=float, shape=(n_grid, n_grid)) # grid node mass
 grid_v_int = ti.Vector.field(2, dtype=int, shape=(n_grid, n_grid)) # grid node momentum/velocity
 grid_m_int = ti.field(dtype=int, shape=(n_grid, n_grid)) # grid node mass
+max_v = ti.field(dtype=ti.i32, shape=())
+
+v_exp = 24
+m_exp = 40
 
 @ti.kernel
 def substep():
@@ -63,18 +67,21 @@ def substep():
       weight = w[i][0] * w[j][1]
       # grid_v[base + offset] += weight * (p_mass * v[p] + affine @ dpos)
       # grid_m[base + offset] += weight * p_mass
-      grid_v_int[base + offset] += int(weight * (p_mass * v[p] + affine @ dpos) * (2 ** 30))
-      grid_m_int[base + offset] += int(weight * p_mass * (2 ** 30))
+      grid_v_int[base + offset] += ti.floor(0.5 + weight * (p_mass * v[p] + affine @ dpos) * (2.0 ** v_exp))
+      grid_m_int[base + offset] += ti.floor(0.5 + weight * p_mass * (2.0 ** m_exp))
       # print(weight, p_mass, int(weight * p_mass * (2 ** 20)))
+  # max_v[None] = 0
   for i, j in grid_m:
     if grid_m_int[i, j] > 0: # No need for epsilon here
       # grid_v[i, j] = (1.0 / grid_m[i, j]) * grid_v[i, j] # Momentum to velocity
-      grid_v[i, j] = (1.0 / grid_m_int[i, j]) * grid_v_int[i, j] # Momentum to velocity
+      grid_v[i, j] = (2 ** (m_exp - v_exp) / grid_m_int[i, j]) * grid_v_int[i, j] # Momentum to velocity
       grid_v[i, j][1] -= dt * 50 # gravity
+      ti.atomic_max(max_v[None], grid_v_int[i, j].max())
       if i < 3 and grid_v[i, j][0] < 0:          grid_v[i, j][0] = 0 # Boundary conditions
       if i > n_grid - 3 and grid_v[i, j][0] > 0: grid_v[i, j][0] = 0
       if j < 3 and grid_v[i, j][1] < 0:          grid_v[i, j][1] = 0
       if j > n_grid - 3 and grid_v[i, j][1] > 0: grid_v[i, j][1] = 0
+  print('maxv', max_v[None])
   for p in x: # grid to particle (G2P)
     base = (x[p] * inv_dx - 0.5).cast(int)
     fx = x[p] * inv_dx - base.cast(float)
@@ -101,9 +108,9 @@ def initialize():
     Jp[i] = 1
 initialize()
 gui = ti.GUI("Taichi MLS-MPM-99", res=512, background_color=0x112F41)
-for i in range(10):
+for i in range(100):
   t = time.time()
-  for s in range(int(5e-2 // dt)):
+  for s in range(int(5e-3 // dt)):
     substep()
   ti.sync()
   print(time.time() - t)
