@@ -1,8 +1,8 @@
 import taichi as ti
 import numpy as np
 import time
-ti.init(arch=ti.gpu, async_mode=False) # Try to run on GPU
-quality = 6 # Use a larger value for higher-res simulations
+ti.init(arch=ti.cpu, async_mode=False) # Try to run on GPU
+quality = 2 # Use a larger value for higher-res simulations
 n_particles, n_grid = 9000 * quality ** 2, 128 * quality
 dx, inv_dx = 1 / n_grid, float(n_grid)
 dt = 1e-4 / quality
@@ -19,6 +19,7 @@ Jp = ti.field(dtype=float, shape=n_particles) # plastic deformation
 grid_v = ti.Vector.field(2, dtype=float, shape=(n_grid, n_grid)) # grid node momentum/velocity
 grid_m = ti.field(dtype=float, shape=(n_grid, n_grid)) # grid node mass
 
+# CUDA quality=6
 # Megakernel sync: 110ms
 # Megakernel async: 124ms
 
@@ -27,8 +28,6 @@ def substep():
   for i, j in grid_m:
     grid_v[i, j] = [0, 0]
     grid_m[i, j] = 0
-  for p in x: # Particle state update and scatter to grid (P2G)
-    F[p] = (ti.Matrix.identity(float, 2) + dt * C[p]) @ F[p] # deformation gradient update
   for p in x:
     if material[p] == 1: # jelly, make it softer
       h = 0.3
@@ -45,12 +44,15 @@ def substep():
       F[p] = ti.Matrix.identity(float, 2) * ti.sqrt(J)
     elif material[p] == 2:
       F[p] = U @ sig @ V.transpose() # Reconstruct elastic deformation gradient after plasticity
+      
+  for p in x:
     h = ti.exp(10 * (1.0 - Jp[p])) # Hardening coefficient: snow gets harder when compressed
     mu, la = mu_0 * h, lambda_0 * h
     if material[p] == 0: # liquid
       mu = 0.0
-      
-    stress = 2 * mu * (F[p] - U @ V.transpose()) @ F[p].transpose() + ti.Matrix.identity(float, 2) * la * J * (J - 1)
+    R, _ = ti.polar_decompose(F[p])
+    J = F[p].determinant()
+    stress = 2 * mu * (F[p] - R) @ F[p].transpose() + ti.Matrix.identity(float, 2) * la * J * (J - 1)
     
     stress = (-dt * p_vol * 4 * inv_dx * inv_dx) * stress
     affine = stress + p_mass * C[p]
@@ -91,6 +93,8 @@ def substep():
     v[p], C[p] = new_v, new_C
   for p in x:
     x[p] += dt * v[p] # advection
+  for p in x:
+    F[p] = (ti.Matrix.identity(float, 2) + dt * C[p]) @ F[p] # deformation gradient update
 
 group_size = n_particles // 3
 @ti.kernel
@@ -110,5 +114,5 @@ while not gui.get_event(ti.GUI.ESCAPE, ti.GUI.EXIT):
   ti.sync()
   print(f'{(time.time() - t) * 1000:.2f} ms')
   colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
-  gui.circles(x.to_numpy(), radius=1.5, color=colors[material.to_numpy()])
+  gui.circles(x.to_numpy(), radius=1.0, color=colors[material.to_numpy()])
   gui.show() # Change to gui.show(f'{frame:06d}.png') to write images to disk
