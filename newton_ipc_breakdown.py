@@ -4,7 +4,7 @@ import time
 import numpy as np
 from distance import *
 
-ti.init(arch=ti.cpu, print_ir=True)
+ti.init(arch=ti.cpu, print_ir=False)
 
 real = ti.f32
 scalar = lambda: ti.var(dt=real)
@@ -145,7 +145,6 @@ def load_hessian_and_gradient4(H, g, idx, c):
 
 @ti.kernel
 def compute_hessian_and_gradient():
-    '''
     cnt[None] = 0
     # ipc
     for r in range(n_PP[None]):
@@ -156,6 +155,8 @@ def compute_hessian_and_gradient():
         g = bg * dist2g
         H = barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * PP_3D_H(p0, p1)
         load_hessian_and_gradient2(H, g, ti.Vector([PP[r, 0], PP[r, 1]]), cnt[None] + r * 36)
+@ti.kernel
+def compute_hessian_and_gradient1():
     cnt[None] += n_PP[None] * 36
     for r in range(n_PE[None]):
         p, e0, e1 = x[PE[r, 0]], x[PE[r, 1]], x[PE[r, 2]]
@@ -165,6 +166,8 @@ def compute_hessian_and_gradient():
         g = bg * dist2g
         H = barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * PE_3D_E(p, e0, e1)
         load_hessian_and_gradient3(H, g, ti.Vector([PE[r, 0], PE[r, 1], PE[r, 2]]), cnt[None] + r * 81)
+@ti.kernel
+def compute_hessian_and_gradient2():
     cnt[None] += n_PE[None] * 81
     for r in range(n_PT[None]):
         p, t0, t1, t2 = x[PT[r, 0]], x[PT[r, 1]], x[PT[r, 2]], x[PT[r, 3]]
@@ -174,6 +177,8 @@ def compute_hessian_and_gradient():
         g = bg * dist2g
         H = barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * PT_3D_H(p, t0, t1, t2)
         load_hessian_and_gradient4(H, g, ti.Vector([PT[r, 0], PT[r, 1], PT[r, 2], PT[r, 3]]), cnt[None] + r * 144)
+@ti.kernel
+def compute_hessian_and_gradient3():
     cnt[None] += n_PT[None] * 144
     for r in range(n_EE[None]):
         a0, a1, b0, b1 = x[EE[r, 0]], x[EE[r, 1]], x[EE[r, 2]], x[EE[r, 3]]
@@ -183,6 +188,8 @@ def compute_hessian_and_gradient():
         g = bg * dist2g
         H = barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * EE_3D_H(a0, a1, b0, b1)
         load_hessian_and_gradient4(H, g, ti.Vector([EE[r, 0], EE[r, 1], EE[r, 2], EE[r, 3]]), cnt[None] + r * 144)
+@ti.kernel
+def compute_hessian_and_gradient4():
     cnt[None] += n_EE[None] * 144
     for r in range(n_EEM[None]):
         a0, a1, b0, b1 = x[EEM[r, 0]], x[EEM[r, 1]], x[EEM[r, 2]], x[EEM[r, 3]]
@@ -199,6 +206,8 @@ def compute_hessian_and_gradient():
         g = lg * M + b * Mg
         H = lH * M + 2 * lg.outer_product(Mg) + b * M_H(a0, a1, b0, b1, eps_x)
         load_hessian_and_gradient4(H, g, ti.Vector([EEM[r, 0], EEM[r, 1], EEM[r, 2], EEM[r, 3]]), cnt[None] + r * 144)
+@ti.kernel
+def compute_hessian_and_gradient5():
     cnt[None] += n_EEM[None] * 144
     for r in range(n_PPM[None]):
         a0, a1, b0, b1 = x[PPM[r, 0]], x[PPM[r, 1]], x[PPM[r, 2]], x[PPM[r, 3]]
@@ -215,8 +224,9 @@ def compute_hessian_and_gradient():
         g = lg * M + b * Mg
         H = lH * M + 2 * lg.outer_product(Mg) + b * M_H(a0, a1, b0, b1, eps_x)
         load_hessian_and_gradient4(H, g, ti.Vector([PPM[r, 0], PPM[r, 1], PPM[r, 2], PPM[r, 3]]), cnt[None] + r * 144)
+@ti.kernel
+def compute_hessian_and_gradient6():
     cnt[None] += n_PPM[None] * 144
-    '''
     for r in range(n_PEM[None]):
         a0, a1, b0, b1 = x[PEM[r, 0]], x[PEM[r, 1]], x[PEM[r, 2]], x[PEM[r, 3]]
         _a0, _a1, _b0, _b1 = x0[PEM[r, 0]], x0[PEM[r, 1]], x0[PEM[r, 2]], x0[PEM[r, 3]]
@@ -234,14 +244,18 @@ def compute_hessian_and_gradient():
         # print(g) # 2428
         H = lH * M + 2 * lg.outer_product(Mg) + b * M_H(a0, a1, b0, b1, eps_x)
         # print(g, H) # 4938
-        '''
         load_hessian_and_gradient4(H, g, ti.Vector([PEM[r, 0], PEM[r, 1], PEM[r, 2], PEM[r, 3]]), cnt[None] + r * 144)
-        '''
     cnt[None] += n_PEM[None] * 144
 
 
 if __name__ == "__main__":
     t = time.time()
     compute_hessian_and_gradient()
+    compute_hessian_and_gradient1()
+    compute_hessian_and_gradient2()
+    compute_hessian_and_gradient3()
+    compute_hessian_and_gradient4()
+    compute_hessian_and_gradient5()
+    compute_hessian_and_gradient6()
     print('Compilation time', time.time() - t)
-    # ti.print_profile_info()
+    ti.print_profile_info()
