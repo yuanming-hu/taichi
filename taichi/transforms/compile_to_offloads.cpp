@@ -41,6 +41,8 @@ void compile_to_offloads(IRNode *ir,
     print("Segment reversed (for autodiff)");
   }
 
+  return;
+
   irpass::lower_ast(ir);
   print("Lowered");
 

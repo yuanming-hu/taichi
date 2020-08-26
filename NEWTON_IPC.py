@@ -231,8 +231,12 @@ def compute_hessian_and_gradient():
         M = M_E(a0, a1, b0, b1, eps_x)
         Mg = M_g(a0, a1, b0, b1, eps_x)
         g = lg * M + b * Mg
+        # print(g) # 2428
         H = lH * M + 2 * lg.outer_product(Mg) + b * M_H(a0, a1, b0, b1, eps_x)
+        # print(g, H) # 4938
+        '''
         load_hessian_and_gradient4(H, g, ti.Vector([PEM[r, 0], PEM[r, 1], PEM[r, 2], PEM[r, 3]]), cnt[None] + r * 144)
+        '''
     cnt[None] += n_PEM[None] * 144
 
 
@@ -240,4 +244,4 @@ if __name__ == "__main__":
     t = time.time()
     compute_hessian_and_gradient()
     print('Compilation time', time.time() - t)
-    ti.print_profile_info()
+    # ti.print_profile_info()
