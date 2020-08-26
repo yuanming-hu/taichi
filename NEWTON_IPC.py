@@ -1,5 +1,6 @@
 import sys, os, time
 import taichi as ti
+import time
 import numpy as np
 from distance import *
 
@@ -144,6 +145,7 @@ def load_hessian_and_gradient4(H, g, idx, c):
 
 @ti.kernel
 def compute_hessian_and_gradient():
+    '''
     cnt[None] = 0
     # ipc
     for r in range(n_PP[None]):
@@ -214,6 +216,7 @@ def compute_hessian_and_gradient():
         H = lH * M + 2 * lg.outer_product(Mg) + b * M_H(a0, a1, b0, b1, eps_x)
         load_hessian_and_gradient4(H, g, ti.Vector([PPM[r, 0], PPM[r, 1], PPM[r, 2], PPM[r, 3]]), cnt[None] + r * 144)
     cnt[None] += n_PPM[None] * 144
+    '''
     for r in range(n_PEM[None]):
         a0, a1, b0, b1 = x[PEM[r, 0]], x[PEM[r, 1]], x[PEM[r, 2]], x[PEM[r, 3]]
         _a0, _a1, _b0, _b1 = x0[PEM[r, 0]], x0[PEM[r, 1]], x0[PEM[r, 2]], x0[PEM[r, 3]]
@@ -223,7 +226,8 @@ def compute_hessian_and_gradient():
         b = barrier_E(dist2, dHat2, kappa)
         bg = barrier_g(dist2, dHat2, kappa)
         lg = fill_vec9(bg * dist2g)
-        lH = fill_mat9(barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * PE_3D_H(a0, b0, b1))
+        PE3D = PE_3D_H(a0, b0, b1)
+        lH = fill_mat9(barrier_H(dist2, dHat2, kappa) * dist2g.outer_product(dist2g) + bg * PE3D)
         M = M_E(a0, a1, b0, b1, eps_x)
         Mg = M_g(a0, a1, b0, b1, eps_x)
         g = lg * M + b * Mg
@@ -233,4 +237,7 @@ def compute_hessian_and_gradient():
 
 
 if __name__ == "__main__":
+    t = time.time()
     compute_hessian_and_gradient()
+    print('Compilation time', time.time() - t)
+    ti.print_profile_info()
