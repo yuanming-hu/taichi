@@ -39,10 +39,12 @@ std::unique_ptr<OffloadedStmt> clone_offloaded_task(OffloadedStmt *from,
 
   TI_P(dummy_root);
   auto off = new_ir->as<OffloadedStmt>();
+  /*
   if (off->tls_prologue)
     off->tls_prologue->parent = dummy_root;
   if (off->tls_epilogue)
     off->tls_epilogue->parent = dummy_root;
+  */
   irpass::fix_block_parents(new_ir.get());
   return std::unique_ptr<OffloadedStmt>((OffloadedStmt *)(new_ir.release()));
 }

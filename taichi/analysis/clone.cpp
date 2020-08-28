@@ -117,8 +117,8 @@ class IRCloner : public IRVisitor {
       stmt->body->accept(this);
     }
 
-    CLONE_BLOCK(tls_epilogue)
     CLONE_BLOCK(bls_epilogue)
+    CLONE_BLOCK(tls_epilogue)
 #undef CLONE_BLOCK
 
     other_node = other;

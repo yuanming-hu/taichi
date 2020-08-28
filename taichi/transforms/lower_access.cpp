@@ -142,7 +142,6 @@ class LowerAccess : public IRVisitor {
         // Create a SNodeOp querying if element i(linearized) of node is active
         lowered.push_back<SNodeOpStmt>(snode_op, snodes[i], last, linearized);
       } else {
-        TI_P(kernel);
         bool kernel_forces_no_activate =
             std::find(kernel->no_activate.begin(), kernel->no_activate.end(),
                       snode) != kernel->no_activate.end();
@@ -176,6 +175,12 @@ class LowerAccess : public IRVisitor {
         auto p = ptr->parent;
         while (p) {
           irpass::print(p);
+          if (auto of = p->parent->cast<OffloadedStmt>()) {
+            if (of->tls_prologue)
+              TI_P(of->tls_prologue->parent)
+            if (of->tls_epilogue)
+            TI_P(of->tls_epilogue->parent)
+          }
           TI_P(p->parent);
           TI_P(p->kernel);
           p = p->parent;
