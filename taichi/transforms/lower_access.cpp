@@ -142,6 +142,7 @@ class LowerAccess : public IRVisitor {
         // Create a SNodeOp querying if element i(linearized) of node is active
         lowered.push_back<SNodeOpStmt>(snode_op, snodes[i], last, linearized);
       } else {
+        TI_P(kernel);
         bool kernel_forces_no_activate =
             std::find(kernel->no_activate.begin(), kernel->no_activate.end(),
                       snode) != kernel->no_activate.end();
@@ -170,6 +171,15 @@ class LowerAccess : public IRVisitor {
             Stmt::make<ElementShuffleStmt>(VectorElement(ptr->indices[k], i));
         indices.push_back(extractor.get());
         lowered.push_back(std::move(extractor));
+      }
+      if (ptr->get_kernel() == nullptr) {
+        auto p = ptr->parent;
+        while (p) {
+          irpass::print(p);
+          TI_P(p->parent);
+          TI_P(p->kernel);
+          p = p->parent;
+        }
       }
       lower_scalar_ptr(lowered, ptr->snodes[i], indices, activate,
                        ptr->get_kernel(), snode_op);
@@ -270,6 +280,7 @@ class LowerAccess : public IRVisitor {
 namespace irpass {
 
 bool lower_access(IRNode *root, bool lower_atomic) {
+  irpass::print(root);
   bool modified = LowerAccess::run(root, lower_atomic);
   type_check(root);
   return modified;

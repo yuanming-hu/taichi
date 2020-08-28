@@ -13,10 +13,19 @@ class FixBlockParents : public IRVisitor {
   FixBlockParents(IRNode *node) : node(node) {
     allow_undefined_visitor = true;
     invoke_default_visitor = true;
+    /*
+    if (auto stmt = node->cast<Stmt>()) {
+      current_block = stmt->parent;
+    } else {
+      current_block = nullptr;
+    }
+     */
     current_block = nullptr;
   }
 
   void visit(Block *stmt_list) override {
+    auto cb = current_block;
+    // if (cb)
     stmt_list->parent = current_block;
 
     current_block = stmt_list;
@@ -24,6 +33,7 @@ class FixBlockParents : public IRVisitor {
       stmt->accept(this);
     }
 
+    //if (cb)
     current_block = stmt_list->parent;
   }
 

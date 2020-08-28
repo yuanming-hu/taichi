@@ -5,11 +5,12 @@ from async_cases import *
 rerun = True
 
 cases = [
-    fuse_dense_x2y2z,
-    fuse_reduction,
-    fill_1d,
-    sparse_numpy,
-    stencil_reduction,
+    autodiff
+    # fuse_dense_x2y2z,
+    # fuse_reduction,
+    # fill_1d,
+    # sparse_numpy,
+    # stencil_reduction,
     # mpm_splitted,
 ]
 
