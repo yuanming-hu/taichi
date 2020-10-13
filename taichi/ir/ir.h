@@ -531,7 +531,7 @@ class Stmt : public IRNode {
   bool erased;
   bool fields_registered;
   std::string tb;
-  Type const *ret_type;
+  Type const *ret_type {PrimitiveType::unknown.get_ptr()};
   int __width__{
       1};  // Note: not really meaningful, except for making the compiler happy.
            // Should be removed once new type system is up.
@@ -552,6 +552,10 @@ class Stmt : public IRNode {
   }
 
   DataType element_type() {
+    TI_P(ret_type->to_string());
+    if (auto ptr = ret_type->cast<PointerType>()) {
+      return DataType(ptr->get_pointee_type());
+    }
     TI_ASSERT(dynamic_cast<const PrimitiveType *>(ret_type));
     return DataType(ret_type);
   }

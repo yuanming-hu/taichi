@@ -61,6 +61,8 @@ void compile_to_offloads(IRNode *ir,
   }
 
   if (vectorize) {
+    TI_WARN("Temporarily disabled");
+    /*
     irpass::loop_vectorize(ir);
     print("Loop Vectorized");
     irpass::analysis::verify(ir);
@@ -68,6 +70,7 @@ void compile_to_offloads(IRNode *ir,
     irpass::vector_split(ir, config.max_vector_width, config.serial_schedule);
     print("Loop Split");
     irpass::analysis::verify(ir);
+    */
   }
   irpass::full_simplify(ir, false);
   print("Simplified I");
