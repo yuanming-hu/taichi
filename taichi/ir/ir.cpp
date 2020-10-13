@@ -235,10 +235,10 @@ void Stmt::replace_operand_with(Stmt *old_stmt, Stmt *new_stmt) {
 }
 
 std::string Stmt::type_hint() const {
-  if (ret_type.data_type == PrimitiveType::unknown)
+  if (DataType(ret_type) == PrimitiveType::unknown)
     return "";
   else
-    return fmt::format("<{}>", ret_type.str());
+    return fmt::format("<{}>", ret_type->to_string());
 }
 
 std::string Stmt::type() {

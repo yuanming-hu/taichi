@@ -17,14 +17,14 @@ TI_TEST("alg_simp") {
         std::make_unique<Kernel>(get_current_program(), func, "fake_kernel");
     block->kernel = kernel.get();
 
-    auto global_load_addr = block->push_back<GlobalTemporaryStmt>(
-        0, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_load_addr =
+        block->push_back<GlobalTemporaryStmt>(0, PrimitiveType::i32.get_ptr());
     auto global_load = block->push_back<GlobalLoadStmt>(global_load_addr);
     auto zero = block->push_back<ConstStmt>(TypedConstant(0));
     auto add =
         block->push_back<BinaryOpStmt>(BinaryOpType::add, global_load, zero);
-    auto global_store_addr = block->push_back<GlobalTemporaryStmt>(
-        4, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_store_addr =
+        block->push_back<GlobalTemporaryStmt>(4, PrimitiveType::i32.get_ptr());
     auto global_store =
         block->push_back<GlobalStoreStmt>(global_store_addr, add);
 
@@ -52,8 +52,8 @@ TI_TEST("alg_simp") {
         std::make_unique<Kernel>(get_current_program(), func, "fake_kernel");
     block->kernel = kernel.get();
 
-    auto global_load_addr = block->push_back<GlobalTemporaryStmt>(
-        0, LegacyVectorType(1, PrimitiveType::f32));
+    auto global_load_addr =
+        block->push_back<GlobalTemporaryStmt>(0, PrimitiveType::f32.get_ptr());
     auto global_load = block->push_back<GlobalLoadStmt>(global_load_addr);
     auto one = block->push_back<ConstStmt>(TypedConstant(1.0f));
     auto mul1 =
@@ -62,8 +62,8 @@ TI_TEST("alg_simp") {
     auto zero = block->push_back<ConstStmt>(TypedConstant(0.0f));
     auto div = block->push_back<BinaryOpStmt>(BinaryOpType::div, zero, one);
     auto sub = block->push_back<BinaryOpStmt>(BinaryOpType::sub, mul2, div);
-    auto global_store_addr = block->push_back<GlobalTemporaryStmt>(
-        4, LegacyVectorType(1, PrimitiveType::f32));
+    auto global_store_addr =
+        block->push_back<GlobalTemporaryStmt>(4, PrimitiveType::f32.get_ptr());
     auto global_store =
         block->push_back<GlobalStoreStmt>(global_store_addr, sub);
 
@@ -90,16 +90,16 @@ TI_TEST("alg_simp") {
         std::make_unique<Kernel>(get_current_program(), func, "fake_kernel");
     block->kernel = kernel.get();
 
-    auto global_load_addr = block->push_back<GlobalTemporaryStmt>(
-        0, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_load_addr =
+        block->push_back<GlobalTemporaryStmt>(0, PrimitiveType::i32.get_ptr());
     auto global_load = block->push_back<GlobalLoadStmt>(global_load_addr);
     auto zero = block->push_back<ConstStmt>(TypedConstant(0));
     auto mul =
         block->push_back<BinaryOpStmt>(BinaryOpType::mul, global_load, zero);
     auto one = block->push_back<ConstStmt>(TypedConstant(1));
     auto add = block->push_back<BinaryOpStmt>(BinaryOpType::add, mul, one);
-    auto global_store_addr = block->push_back<GlobalTemporaryStmt>(
-        4, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_store_addr =
+        block->push_back<GlobalTemporaryStmt>(4, PrimitiveType::i32.get_ptr());
     auto global_store =
         block->push_back<GlobalStoreStmt>(global_store_addr, add);
 
@@ -118,15 +118,15 @@ TI_TEST("alg_simp") {
     block = std::make_unique<Block>();
     block->kernel = kernel.get();
 
-    global_load_addr = block->push_back<GlobalTemporaryStmt>(
-        8, LegacyVectorType(1, PrimitiveType::f32));
+    global_load_addr =
+        block->push_back<GlobalTemporaryStmt>(8, PrimitiveType::f32.get_ptr());
     global_load = block->push_back<GlobalLoadStmt>(global_load_addr);
     zero = block->push_back<ConstStmt>(TypedConstant(0));
     mul = block->push_back<BinaryOpStmt>(BinaryOpType::mul, global_load, zero);
     one = block->push_back<ConstStmt>(TypedConstant(1));
     add = block->push_back<BinaryOpStmt>(BinaryOpType::add, mul, one);
-    global_store_addr = block->push_back<GlobalTemporaryStmt>(
-        12, LegacyVectorType(1, PrimitiveType::f32));
+    global_store_addr =
+        block->push_back<GlobalTemporaryStmt>(12, PrimitiveType::f32.get_ptr());
     global_store = block->push_back<GlobalStoreStmt>(global_store_addr, add);
 
     irpass::type_check(block.get());  // insert 2 casts
@@ -152,14 +152,14 @@ TI_TEST("alg_simp") {
 
     auto block = std::make_unique<Block>();
 
-    auto global_load_addr = block->push_back<GlobalTemporaryStmt>(
-        0, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_load_addr =
+        block->push_back<GlobalTemporaryStmt>(0, PrimitiveType::i32.get_ptr());
     auto global_load = block->push_back<GlobalLoadStmt>(global_load_addr);
     auto minus_one = block->push_back<ConstStmt>(TypedConstant(-1));
     auto and_result = block->push_back<BinaryOpStmt>(BinaryOpType::bit_and,
                                                      minus_one, global_load);
-    auto global_store_addr = block->push_back<GlobalTemporaryStmt>(
-        4, LegacyVectorType(1, PrimitiveType::i32));
+    auto global_store_addr =
+        block->push_back<GlobalTemporaryStmt>(4, PrimitiveType::i32.get_ptr());
     auto global_store =
         block->push_back<GlobalStoreStmt>(global_store_addr, and_result);
 

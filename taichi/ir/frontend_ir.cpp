@@ -119,7 +119,7 @@ void UnaryOpExpression::flatten(FlattenContext *ctx) {
   operand->flatten(ctx);
   auto unary = std::make_unique<UnaryOpStmt>(type, operand->stmt);
   if (is_cast()) {
-    unary->cast_type = cast_type;
+    unary->cast_type = cast_type.get_ptr();
   }
   stmt = unary.get();
   stmt->tb = tb;

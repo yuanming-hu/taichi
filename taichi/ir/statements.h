@@ -9,12 +9,13 @@ TLANG_NAMESPACE_BEGIN
 class AllocaStmt : public Stmt {
  public:
   AllocaStmt(DataType type) {
-    ret_type = LegacyVectorType(1, type);
+    ret_type = type.get_ptr();
     TI_STMT_REG_FIELDS;
   }
 
   AllocaStmt(int width, DataType type) {
-    ret_type = LegacyVectorType(width, type);
+    TI_ASSERT(width == 1);
+    ret_type = type.get_ptr();
     TI_STMT_REG_FIELDS;
   }
 
@@ -84,7 +85,7 @@ class UnaryOpStmt : public Stmt {
  public:
   UnaryOpType op_type;
   Stmt *operand;
-  DataType cast_type;
+  const Type *cast_type;
 
   UnaryOpStmt(UnaryOpType op_type, Stmt *operand);
 
@@ -105,7 +106,7 @@ class ArgLoadStmt : public Stmt {
   bool is_ptr;
 
   ArgLoadStmt(int arg_id, DataType dt, bool is_ptr = false) : arg_id(arg_id) {
-    this->ret_type = LegacyVectorType(1, dt);
+    this->ret_type = dt.get_ptr();
     this->is_ptr = is_ptr;
     TI_STMT_REG_FIELDS;
   }
@@ -121,7 +122,7 @@ class ArgLoadStmt : public Stmt {
 class RandStmt : public Stmt {
  public:
   RandStmt(DataType dt) {
-    ret_type.data_type = dt;
+    ret_type = dt.get_ptr();
     TI_STMT_REG_FIELDS;
   }
 
@@ -487,9 +488,7 @@ class ConstStmt : public Stmt {
   ConstStmt(const LaneAttribute<TypedConstant> &val) : val(val) {
     width() = val.size();
     element_type() = val[0].dt;
-    for (int i = 0; i < ret_type.width; i++) {
-      TI_ASSERT(val[0].dt == val[i].dt);
-    }
+
     TI_STMT_REG_FIELDS;
   }
 
@@ -615,7 +614,7 @@ class KernelReturnStmt : public Stmt {
   Stmt *value;
 
   KernelReturnStmt(Stmt *value, DataType dt) : value(value) {
-    this->ret_type = LegacyVectorType(1, dt);
+    this->ret_type = dt.get_ptr();
     TI_STMT_REG_FIELDS;
   }
 
@@ -934,7 +933,7 @@ class GlobalTemporaryStmt : public Stmt {
  public:
   std::size_t offset;
 
-  GlobalTemporaryStmt(std::size_t offset, LegacyVectorType ret_type)
+  GlobalTemporaryStmt(std::size_t offset, const Type *ret_type)
       : offset(offset) {
     this->ret_type = ret_type;
     TI_STMT_REG_FIELDS;
@@ -952,8 +951,7 @@ class ThreadLocalPtrStmt : public Stmt {
  public:
   std::size_t offset;
 
-  ThreadLocalPtrStmt(std::size_t offset, LegacyVectorType ret_type)
-      : offset(offset) {
+  ThreadLocalPtrStmt(std::size_t offset, const Type *ret_type) : offset(offset) {
     this->ret_type = ret_type;
     TI_STMT_REG_FIELDS;
   }
@@ -970,7 +968,7 @@ class BlockLocalPtrStmt : public Stmt {
  public:
   Stmt *offset;
 
-  BlockLocalPtrStmt(Stmt *offset, LegacyVectorType ret_type) : offset(offset) {
+  BlockLocalPtrStmt(Stmt *offset, Type *ret_type) : offset(offset) {
     this->ret_type = ret_type;
     TI_STMT_REG_FIELDS;
   }
@@ -1001,7 +999,7 @@ class InternalFuncStmt : public Stmt {
   std::string func_name;
 
   InternalFuncStmt(const std::string &func_name) : func_name(func_name) {
-    this->ret_type = LegacyVectorType(1, PrimitiveType::i32);
+    this->ret_type = PrimitiveType::i32.get_ptr();
     TI_STMT_REG_FIELDS;
   }
 
@@ -1020,7 +1018,7 @@ class StackAllocaStmt : public Stmt {
   }
 
   std::size_t element_size_in_bytes() const {
-    return data_type_size(ret_type.data_type);
+    return data_type_size(ret_type);
   }
 
   std::size_t entry_size_in_bytes() const {

@@ -7,6 +7,31 @@ TLANG_NAMESPACE_BEGIN
 class Type {
  public:
   virtual std::string to_string() const = 0;
+
+  template <typename T>
+  bool is() const {
+    return cast<T>() != nullptr;
+  }
+
+  template <typename T>
+  const T *cast() const {
+    return dynamic_cast<const T *>(this);
+  }
+
+  template <typename T>
+  T *cast() {
+    return dynamic_cast<T *>(this);
+  }
+
+  template <typename T>
+  T *as() {
+    auto p = dynamic_cast<T *>(this);
+    TI_ASSERT(p != nullptr);
+    return p;
+  }
+
+  virtual int get_width() const = 0;
+
   virtual ~Type() {
   }
 };
@@ -59,6 +84,10 @@ class PrimitiveType : public Type {
   PrimitiveType(primitive_type type) : type(type) {
   }
 
+  virtual int get_width() const override {
+    return 1;
+  };
+
   std::string to_string() const override;
 
   static DataType get(primitive_type type);
@@ -86,6 +115,10 @@ class PointerType : public Type {
     return fmt::format("*{}", pointee_->to_string());
   };
 
+  virtual int get_width() const override {
+    return 1;
+  };
+
  private:
   Type *pointee_{nullptr};
   int addr_space_{0};  // TODO: make this an enum
@@ -108,6 +141,10 @@ class VectorType : public Type {
 
   std::string to_string() const override {
     return fmt::format("[{} x {}]", num_elements_, element_->to_string());
+  };
+
+  virtual int get_width() const override {
+    return num_elements_;
   };
 
  private:

@@ -22,12 +22,14 @@ class LoopVectorize : public IRVisitor {
   }
 
   void visit(Stmt *stmt) override {
-    stmt->ret_type.width *= vectorize;
+    TI_NOT_IMPLEMENTED
+    // stmt->ret_type.width *= vectorize;
   }
 
   void visit(ConstStmt *stmt) override {
-    stmt->val.repeat(vectorize);
-    stmt->ret_type.width *= vectorize;
+    TI_NOT_IMPLEMENTED
+    // stmt->val.repeat(vectorize);
+    // stmt->ret_type.width *= vectorize;
   }
 
   void visit(Block *stmt_list) override {
@@ -46,7 +48,8 @@ class LoopVectorize : public IRVisitor {
   }
 
   void visit(AllocaStmt *alloca) override {
-    alloca->ret_type.width *= vectorize;
+    TI_NOT_IMPLEMENTED
+    // alloca->ret_type.width *= vectorize;
   }
 
   void visit(SNodeOpStmt *stmt) override {
@@ -60,6 +63,8 @@ class LoopVectorize : public IRVisitor {
   }
 
   void visit(ElementShuffleStmt *stmt) override {
+    TI_NOT_IMPLEMENTED
+    /*
     if (vectorize == 1)
       return;
     int original_width = stmt->width();
@@ -74,9 +79,12 @@ class LoopVectorize : public IRVisitor {
         }
       }
     }
+    */
   }
 
   void visit(LocalLoadStmt *stmt) override {
+    TI_NOT_IMPLEMENTED
+    /*
     if (vectorize == 1)
       return;
     int original_width = stmt->width();
@@ -107,6 +115,7 @@ class LoopVectorize : public IRVisitor {
       stmt->insert_after_me(std::move(offsets));
       offsets_p->insert_after_me(std::move(add_op));
     }
+    */
   }
 
   void visit(IfStmt *if_stmt) override {

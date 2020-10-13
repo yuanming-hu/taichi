@@ -86,12 +86,12 @@ class DemoteOperations : public BasicStmtVisitor {
       //     return ret
       auto unsigned_cast = Stmt::make<UnaryOpStmt>(UnaryOpType::cast_bits, lhs);
       unsigned_cast->as<UnaryOpStmt>()->cast_type =
-          to_unsigned(lhs->element_type());
+          to_unsigned(DataType(lhs->element_type())).get_ptr();
       auto shift = Stmt::make<BinaryOpStmt>(BinaryOpType::bit_sar,
                                             unsigned_cast.get(), rhs);
       auto signed_cast =
           Stmt::make<UnaryOpStmt>(UnaryOpType::cast_bits, shift.get());
-      signed_cast->as<UnaryOpStmt>()->cast_type = lhs->element_type();
+      signed_cast->as<UnaryOpStmt>()->cast_type = lhs->element_type().get_ptr();
       stmt->replace_with(signed_cast.get());
       modifier.insert_before(stmt, std::move(unsigned_cast));
       modifier.insert_before(stmt, std::move(shift));

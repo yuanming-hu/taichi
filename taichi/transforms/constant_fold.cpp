@@ -45,7 +45,7 @@ class ConstantFold : public BasicStmtVisitor {
       } else {
         oper = Stmt::make<UnaryOpStmt>(id.unary_op(), lhstmt.get());
         if (unary_op_is_cast(id.unary_op())) {
-          oper->cast<UnaryOpStmt>()->cast_type = id.rhs;
+          oper->cast<UnaryOpStmt>()->cast_type = id.rhs.get_ptr();
         }
       }
       auto ret = Stmt::make<KernelReturnStmt>(oper.get(), id.ret);
@@ -133,7 +133,7 @@ class ConstantFold : public BasicStmtVisitor {
       return;
     if (stmt->width() != 1)
       return;
-    auto dst_type = stmt->ret_type.data_type;
+    auto dst_type = stmt->ret_type;
     TypedConstant new_constant(dst_type);
     if (jit_evaluate_binary_op(new_constant, stmt, lhs->val[0], rhs->val[0])) {
       auto evaluated =
@@ -146,7 +146,7 @@ class ConstantFold : public BasicStmtVisitor {
 
   void visit(UnaryOpStmt *stmt) override {
     if (stmt->is_cast() &&
-        stmt->cast_type == stmt->operand->ret_type.data_type) {
+        stmt->cast_type == stmt->operand->ret_type) {
       stmt->replace_with(stmt->operand);
       modifier.erase(stmt);
       return;
@@ -156,7 +156,7 @@ class ConstantFold : public BasicStmtVisitor {
       return;
     if (stmt->width() != 1)
       return;
-    auto dst_type = stmt->ret_type.data_type;
+    auto dst_type = stmt->ret_type;
     TypedConstant new_constant(dst_type);
     if (jit_evaluate_unary_op(new_constant, stmt, operand->val[0])) {
       auto evaluated =

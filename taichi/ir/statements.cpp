@@ -18,7 +18,7 @@ bool ContinueStmt::as_return() const {
 UnaryOpStmt::UnaryOpStmt(UnaryOpType op_type, Stmt *operand)
     : op_type(op_type), operand(operand) {
   TI_ASSERT(!operand->is<AllocaStmt>());
-  cast_type = PrimitiveType::unknown;
+  cast_type = PrimitiveType::unknown.get_ptr();
   TI_STMT_REG_FIELDS;
 }
 

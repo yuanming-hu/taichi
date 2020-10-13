@@ -531,29 +531,33 @@ class Stmt : public IRNode {
   bool erased;
   bool fields_registered;
   std::string tb;
-  LegacyVectorType ret_type;
+  Type const *ret_type;
+  int __width__{
+      1};  // Note: not really meaningful, except for making the compiler happy.
+           // Should be removed once new type system is up.
 
   Stmt();
   Stmt(const Stmt &stmt);
 
   int &width() {
-    return ret_type.width;
+    return __width__;
   }
 
   const int &width() const {
-    return ret_type.width;
+    return __width__;
   }
 
   virtual bool is_container_statement() const {
     return false;
   }
 
-  DataType &element_type() {
-    return ret_type.data_type;
+  DataType element_type() {
+    TI_ASSERT(dynamic_cast<const PrimitiveType *>(ret_type));
+    return DataType(ret_type);
   }
 
   std::string ret_data_type_name() const {
-    return ret_type.str();
+    return ret_type->to_string();
   }
 
   std::string type_hint() const;
@@ -594,9 +598,9 @@ class Stmt : public IRNode {
 
   IRNode *get_parent() const override;
 
-  virtual void repeat(int factor) {
-    ret_type.width *= factor;
-  }
+  virtual void repeat(int factor){
+      // This is for vectorization. Not implemented anymore.
+      TI_NOT_IMPLEMENTED}
 
   // returns the inserted stmt
   Stmt *insert_before_me(std::unique_ptr<Stmt> &&new_stmt);
