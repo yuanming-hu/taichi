@@ -4,14 +4,9 @@ import time
 
 real = ti.f32
 ti.init(default_fp=real,
-        arch=ti.cuda,
+        arch=ti.gpu,
         async_mode=True,
-        async_opt_listgen=True,
-        async_opt_dse=True,
-        async_opt_activation_demotion=True,
-        async_opt_fusion=True,
         kernel_profiler=True
-        #, async_opt_intermediate_file="mgpcg"
         )
 
 # grid parameters
@@ -47,8 +42,9 @@ grid = ti.root.pointer(ti.ijk,
                                                    leaf_size).place(x, p, Ap)
 
 for l in range(n_mg_levels):
-    grid = ti.root.pointer(ti.ijk, [N_tot // (leaf_size * 2**l)]).dense(
-        ti.ijk, leaf_size).place(r[l], z[l])
+    block = ti.root.pointer(ti.ijk, [N_tot // (leaf_size * 2**l)])
+    block.dense(ti.ijk, leaf_size).place(r[l], z[l])
+    # block.dense(ti.ijk, leaf_size).place(z[l])
 
 ti.root.place(alpha, beta, sum)
 
@@ -79,6 +75,7 @@ def compute_Ap():
 @ti.kernel
 def reduce(p: ti.template(), q: ti.template(), s: ti.template()):
     s[None] = 0
+    ti.block_dim(32)
     for I in ti.grouped(p):
         s[None] += p[I] * q[I]
 
@@ -120,6 +117,7 @@ def prolongate(l: ti.template()):
 @ti.kernel
 def smooth(l: ti.template(), phase: ti.template()):
     # phase = red/black Gauss-Seidel phase
+    # ti.block_dim(32)
     for i, j, k in r[l]:
         if (i + j + k) & 1 == phase:
             z[l][i,j,k] = (r[l][i,j,k] + z[l][i+1,j,k] + z[l][i-1,j,k] \
@@ -222,11 +220,11 @@ def loud_sync():
 
 
 ti.sync()
-for _ in range(3):
+for _ in range(10):
     for i in range(10):
         iterate()
     loud_sync()
 
 ti.kernel_profiler_print()
 ti.core.print_stat()
-ti.print_profile_info()
+# ti.print_profile_info()
