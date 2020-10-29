@@ -201,6 +201,7 @@ BinaryOpType atomic_to_binary_op_type(AtomicOpType type);
 enum class SNodeOpType : int {
   is_active,
   length,
+  get_addr,
   activate,
   deactivate,
   append,

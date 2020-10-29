@@ -561,3 +561,7 @@ def deactivate(l, indices):
 
 def length(l, indices):
     return Expr(ti_core.insert_len(l.snode.ptr, make_expr_group(indices)))
+
+
+def get_addr(l, indices):
+    return Expr(ti_core.expr_get_addr(l.snode.ptr, make_expr_group(indices)))

@@ -80,6 +80,14 @@ std::string data_type_format(DataType dt) {
 #else
     return "%I64d";
 #endif
+  } else if (dt->is_primitive(PrimitiveTypeID::u32)) {
+    return "%u";
+  } else if (dt->is_primitive(PrimitiveTypeID::u64)) {
+#if defined(TI_PLATFORM_UNIX)
+    return "%llu";
+#else
+    return "%I64u";
+#endif
   } else if (dt->is_primitive(PrimitiveTypeID::f32)) {
     return "%f";
   } else if (dt->is_primitive(PrimitiveTypeID::f64)) {
@@ -283,6 +291,7 @@ std::string snode_op_type_name(SNodeOpType type) {
 
     REGISTER_TYPE(is_active);
     REGISTER_TYPE(length);
+    REGISTER_TYPE(get_addr);
     REGISTER_TYPE(activate);
     REGISTER_TYPE(deactivate);
     REGISTER_TYPE(append);
