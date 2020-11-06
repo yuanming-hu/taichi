@@ -15,8 +15,4 @@ def test_custom_int_load_and_store():
     cu14 = ti.type_factory_.get_custom_int_type(14, False)
     ci5 = ti.type_factory_.get_custom_int_type(5, True)
 
-    x = ti.field(dtype=ci13)
-    y = ti.field(dtype=cu14)
-    z = ti.field(dtype=ci5)
-
     return
