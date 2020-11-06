@@ -16,22 +16,6 @@ def test_simple_array():
 
     ti.get_runtime().materialize()
 
-    @ti.kernel
-    def set_val():
-        for i in range(N):
-            x[i] = -2**i
-            y[i] = 2**i - 1
-
-    @ti.kernel
-    def verify_val():
-        for i in range(N):
-            assert x[i] == -2**i
-            assert y[i] == 2**i - 1
-
-    set_val()
-    verify_val()
-
-
 def test_custom_int_load_and_store():
     ti.init(arch=ti.cpu, debug=True, print_ir=True, cfg_optimization=False)
     ci13 = ti.type_factory_.get_custom_int_type(13, True)
