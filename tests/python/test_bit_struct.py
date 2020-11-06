@@ -35,18 +35,4 @@ def test_custom_int_load_and_store():
     test_case = ti.Vector.field(3, dtype=ti.i32, shape=len(test_case_np))
     test_case.from_numpy(test_case_np)
 
-    @ti.kernel
-    def set_val(idx: ti.i32):
-        x[None] = test_case[idx][0]
-        y[None] = test_case[idx][1]
-        z[None] = test_case[idx][2]
-
-    @ti.kernel
-    def verify_val(idx: ti.i32):
-        assert x[None] == test_case[idx][0]
-        assert y[None] == test_case[idx][1]
-        assert z[None] == test_case[idx][2]
-
-    for idx in range(len(test_case_np)):
-        set_val(idx)
-        verify_val(idx)
+    ti.get_runtime().materialize()
