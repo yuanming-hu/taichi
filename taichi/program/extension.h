@@ -17,7 +17,6 @@ TLANG_NAMESPACE_BEGIN
 enum class Extension {
 #define PER_EXTENSION(x) x,
 #include "taichi/inc/extensions.inc.h"
-
 #undef PER_EXTENSION
 };
 

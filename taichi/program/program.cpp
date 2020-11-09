@@ -20,6 +20,7 @@
 #include "taichi/backends/opengl/struct_opengl.h"
 #include "taichi/system/unified_allocator.h"
 #include "taichi/ir/snode.h"
+#include "taichi/ir/frontend.h"
 #include "taichi/ir/frontend_ir.h"
 #include "taichi/program/async_engine.h"
 #include "taichi/util/statistics.h"
@@ -188,6 +189,16 @@ Program::Program(Arch desired_arch) {
 
   if (arch_is_cpu(arch)) {
     config.max_block_dim = 1024;
+  }
+
+  if (config.use_global_tmp_snode) {
+    // Create the global temporary buffer as an SNode
+    auto x = Expr::make<IdExpression>("GlobalTemporary");
+    Expr x_field = global_new(x, TypeFactory::get_instance().get_primitive_type(
+                                     PrimitiveTypeID::i64));
+    x_field.cast<GlobalVariableExpression>()->is_primal = true;
+    snode_root->dense(Index(0), taichi_global_tmp_buffer_size)
+        .place(x_field, {0});
   }
 
   stat.clear();

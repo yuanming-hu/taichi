@@ -10,6 +10,7 @@ void layout(const std::function<void()> &body) {
   get_current_program().layout(body);
 }
 
+// TODO: rename to new_field
 Expr global_new(Expr id_expr, DataType dt) {
   TI_ASSERT(id_expr.is<IdExpression>());
   auto ret = Expr(std::make_shared<GlobalVariableExpression>(
