@@ -30,8 +30,9 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
       [&s](const SFGStateToNodes::value_type &v) { return v.first == s; });
 }
 
-std::pair<SFGStateToNodes::value_type::second_type *, bool>
-insert(SFGStateToNodes &m, const AsyncState &s) {
+std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
+    SFGStateToNodes &m,
+    const AsyncState &s) {
   auto itr = find(m, s);
   if (itr != m.end()) {
     return std::make_pair(&(itr->second), true);
@@ -40,9 +41,8 @@ insert(SFGStateToNodes &m, const AsyncState &s) {
   return std::make_pair(&(m.back().second), false);
 }
 
-SFGStateToNodes::value_type::second_type &get_or_insert(
-    SFGStateToNodes &m,
-    const AsyncState &s) {
+SFGStateToNodes::value_type::second_type &get_or_insert(SFGStateToNodes &m,
+                                                        const AsyncState &s) {
   // get_or_insert() implies that the user doesn't care whether |s| is already
   // in |m|, so we just return the mapped value. This is functionally equivalent
   // to a (unordered) map's operator[].
@@ -383,7 +383,9 @@ bool StateFlowGraph::optimize_listgen() {
       TI_P(nodes_.size());
       auto t = Time::get_time();
       rebuild_graph(/*sort=*/false);
-      TI_P(Time::get_time() - t);
+      auto rebuild_t = Time::get_time() - t;
+      TI_INFO("total time {} ms; per_node {} us", rebuild_t * 1000,
+              1e6 * rebuild_t / nodes_.size());
     }
   }
 
@@ -697,7 +699,6 @@ bool StateFlowGraph::fuse() {
 
 void StateFlowGraph::rebuild_graph(bool sort) {
   TI_AUTO_PROF;
-  TI_P(nodes_.size());
   if (sort)
     topo_sort_nodes();
   std::vector<TaskLaunchRecord> tasks;
@@ -1368,6 +1369,17 @@ void StateFlowGraph::mark_list_as_dirty(SNode *snode) {
     if (ch->type != SNodeType::place) {
       mark_list_as_dirty(ch.get());
     }
+  }
+}
+
+void StateFlowGraph::benchmark_rebuild_graph() {
+  for (int k = 0; k < 10; k++) {
+    auto t = Time::get_time();
+    for (int i = 0; i < 100; i++)
+      rebuild_graph(/*sort=*/false);
+    auto rebuild_t = Time::get_time() - t;
+    TI_INFO("nodes = {} total time {} ms; per_node {} us", nodes_.size(),
+            rebuild_t * 10, 1e4 * rebuild_t / nodes_.size());
   }
 }
 

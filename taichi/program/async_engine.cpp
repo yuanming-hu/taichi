@@ -207,6 +207,7 @@ void AsyncEngine::launch(Kernel *kernel, Context &context) {
 void AsyncEngine::synchronize() {
   TI_AUTO_PROF
   bool modified = true;
+  sfg->benchmark_rebuild_graph();
   sfg->reid_nodes();
   sfg->reid_pending_nodes();
   TI_TRACE("Synchronizing SFG of {} nodes ({} pending)", sfg->size(),
@@ -218,7 +219,8 @@ void AsyncEngine::synchronize() {
   int iter = 0;
   while (modified) {
     iter += 1;
-    if (iter >= 2) break;
+    if (iter >= 2)
+      break;
     modified = false;
     if (program->config.async_opt_activation_demotion) {
       while (sfg->demote_activation()) {
