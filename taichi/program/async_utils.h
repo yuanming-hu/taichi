@@ -81,39 +81,33 @@ class TaskLaunchRecord {
 
 struct AsyncState {
   enum class Type { mask, value, list, allocator, undefined };
+
   std::variant<SNode *, Kernel *> snode_or_global_tmp;
   Type type;
+  std::size_t unique_id;
+
   AsyncState() = default;
-  std::size_t h;
 
   // For SNode
-  AsyncState(SNode *snode, Type type) : snode_or_global_tmp(snode), type(type) {
-    int d = 0;
-    if (std::holds_alternative<SNode *>(snode_or_global_tmp)) {
-      d = std::get<SNode *>(snode_or_global_tmp)->id;
-    } else {
-      d = (std::size_t)std::get<Kernel *>(snode_or_global_tmp);
-    }
-    h = d * int(Type::undefined) + (int)type;
+  AsyncState(SNode *snode, Type type)
+      : snode_or_global_tmp(snode),
+        type(type),
+        unique_id(get_unique_id(snode, type)) {
   }
 
   // For global temporaries
-  static AsyncState for_global_tmp(Kernel *k) {
-    AsyncState res;
-    res.snode_or_global_tmp = k;
-    res.type = Type::value;
-    return res;
+  AsyncState(Kernel *kernel)
+      : snode_or_global_tmp(kernel),
+        type(Type::value),
+        unique_id(get_unique_id(kernel, type)) {
   }
 
   bool operator<(const AsyncState &other) const {
-    return snode_or_global_tmp < other.snode_or_global_tmp ||
-           (snode_or_global_tmp == other.snode_or_global_tmp &&
-            type < other.type);
+    return unique_id < other.unique_id;
   }
 
   bool operator==(const AsyncState &other) const {
-    return snode_or_global_tmp == other.snode_or_global_tmp &&
-           type == other.type;
+    return unique_id == other.unique_id;
   }
 
   std::string name() const;
@@ -129,6 +123,8 @@ struct AsyncState {
   const SNode *snode() const {
     return std::get<SNode *>(snode_or_global_tmp);
   }
+
+  static std::size_t get_unique_id(void *ptr, Type type);
 };
 
 struct TaskFusionMeta {
@@ -188,7 +184,7 @@ struct hash<std::pair<taichi::lang::IRHandle, taichi::lang::IRHandle>> {
 template <>
 struct hash<taichi::lang::AsyncState> {
   std::size_t operator()(const taichi::lang::AsyncState &s) const noexcept {
-    return s.h;
+    return s.unique_id;
   }
 };
 
