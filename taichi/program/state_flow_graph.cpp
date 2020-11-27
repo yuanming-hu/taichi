@@ -33,9 +33,20 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
 std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
     SFGStateToNodes &m,
     const AsyncState &s) {
+  /*
   auto itr = find(m, s);
   if (itr != m.end()) {
     return std::make_pair(&(itr->second), true);
+  }
+  m.push_back(std::make_pair(s, SFGStateToNodes::value_type::second_type{}));
+  return std::make_pair(&(m.back().second), false);
+  */
+
+  int sz = m.size();
+  for (int i = 0; i < sz; i++) {
+    if (m[i].first == s) {
+      return std::make_pair(&m[i].second, true);
+    }
   }
   m.push_back(std::make_pair(s, SFGStateToNodes::value_type::second_type{}));
   return std::make_pair(&(m.back().second), false);
