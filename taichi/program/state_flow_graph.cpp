@@ -221,7 +221,7 @@ void StateFlowGraph::insert_tasks(const std::vector<TaskLaunchRecord> &records,
 }
 
 void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
-  TI_AUTO_PROF
+  // TI_AUTO_PROF
   for (auto input_state : node->meta->input_states) {
     if (latest_state_owner_.find(input_state) == latest_state_owner_.end()) {
       latest_state_owner_[input_state] = initial_node_;
@@ -1378,8 +1378,8 @@ void StateFlowGraph::benchmark_rebuild_graph() {
     for (int i = 0; i < 100; i++)
       rebuild_graph(/*sort=*/false);
     auto rebuild_t = Time::get_time() - t;
-    TI_INFO("nodes = {} total time {} ms; per_node {} us", nodes_.size(),
-            rebuild_t * 10, 1e4 * rebuild_t / nodes_.size());
+    TI_INFO("nodes = {} total time {:.4f} us; per_node {:.4f} us", nodes_.size(),
+            rebuild_t * 1e4, 1e4 * rebuild_t / nodes_.size());
   }
 }
 

@@ -18,5 +18,6 @@ def foo():
     e[None] += 1
     f[None] += 1
     
-foo()
+for i in range(100):
+    foo()
 ti.sync()
