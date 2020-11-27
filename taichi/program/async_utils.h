@@ -80,13 +80,21 @@ class TaskLaunchRecord {
 };
 
 struct AsyncState {
-  enum class Type { mask, value, list, allocator };
+  enum class Type { mask, value, list, allocator, undefined };
   std::variant<SNode *, Kernel *> snode_or_global_tmp;
   Type type;
   AsyncState() = default;
+  std::size_t h;
 
   // For SNode
   AsyncState(SNode *snode, Type type) : snode_or_global_tmp(snode), type(type) {
+    int d = 0;
+    if (std::holds_alternative<SNode *>(snode_or_global_tmp)) {
+      d = std::get<SNode *>(snode_or_global_tmp)->id;
+    } else {
+      d = (std::size_t)std::get<Kernel *>(snode_or_global_tmp);
+    }
+    h = d * int(Type::undefined) + (int)type;
   }
 
   // For global temporaries
@@ -180,8 +188,7 @@ struct hash<std::pair<taichi::lang::IRHandle, taichi::lang::IRHandle>> {
 template <>
 struct hash<taichi::lang::AsyncState> {
   std::size_t operator()(const taichi::lang::AsyncState &s) const noexcept {
-    std::hash<decltype(s.snode_or_global_tmp)> h;
-    return h(s.snode_or_global_tmp) ^ (std::size_t)s.type;
+    return s.h;
   }
 };
 
