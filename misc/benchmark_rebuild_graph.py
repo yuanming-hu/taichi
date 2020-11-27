@@ -9,6 +9,7 @@ d = ti.field(dtype=ti.i32, shape=())
 e = ti.field(dtype=ti.i32, shape=())
 f = ti.field(dtype=ti.i32, shape=())
 
+
 @ti.kernel
 def foo():
     a[None] += 1
@@ -17,7 +18,8 @@ def foo():
     d[None] += 1
     e[None] += 1
     f[None] += 1
-    
+
+
 for i in range(1000):
     foo()
 ti.sync()

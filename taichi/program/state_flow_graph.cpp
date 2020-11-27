@@ -33,19 +33,9 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
 std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
     SFGStateToNodes &m,
     const AsyncState &s) {
-  /*
   auto itr = find(m, s);
   if (itr != m.end()) {
     return std::make_pair(&(itr->second), true);
-  }
-  m.push_back(std::make_pair(s, SFGStateToNodes::value_type::second_type{}));
-  return std::make_pair(&(m.back().second), false);
-  */
-  int sz = m.size();
-  for (int i = 0; i < sz; i++) {
-    if (m[i].first == s) {
-      return std::make_pair(&m[i].second, true);
-    }
   }
   m.push_back(std::make_pair(s, SFGStateToNodes::value_type::second_type{}));
   return std::make_pair(&(m.back().second), false);
@@ -231,15 +221,12 @@ void StateFlowGraph::insert_tasks(const std::vector<TaskLaunchRecord> &records,
 }
 
 void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
-  // TI_AUTO_PROF
   for (auto input_state : node->meta->input_states) {
     if (latest_state_owner_.find(input_state) == latest_state_owner_.end()) {
       latest_state_owner_[input_state] = initial_node_;
     }
-    // latest_state_owner_[input_state] = initial_node_;
     insert_edge(latest_state_owner_[input_state], node.get(), input_state);
   }
-  /*
   for (auto output_state : node->meta->output_states) {
     if (get_or_insert(latest_state_readers_, output_state).empty()) {
       if (latest_state_owner_.find(output_state) != latest_state_owner_.end()) {
@@ -262,7 +249,6 @@ void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
   for (auto input_state : node->meta->input_states) {
     insert(latest_state_readers_, input_state, node.get());
   }
-   */
   nodes_.emplace_back(std::move(node));
 }
 

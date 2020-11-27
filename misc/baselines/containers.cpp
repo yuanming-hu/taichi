@@ -41,7 +41,6 @@ int main() {
   return 0;
 }
 
-
 // g++ containers.cpp -o containers -O3 -g -Wall && ./containers
 //
 // vector write 0.4538 ns

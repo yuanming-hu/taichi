@@ -216,11 +216,7 @@ void AsyncEngine::synchronize() {
   if (program->config.debug) {
     sfg->verify();
   }
-  int iter = 0;
   while (modified) {
-    iter += 1;
-    if (iter >= 2)
-      break;
     modified = false;
     if (program->config.async_opt_activation_demotion) {
       while (sfg->demote_activation()) {

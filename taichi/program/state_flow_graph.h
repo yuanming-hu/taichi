@@ -22,7 +22,7 @@ class StateFlowGraph {
  public:
   struct Node;
   using StateToNodesMap =
-      llvm::SmallVector<std::pair<AsyncState, llvm::SmallSet<Node *, 8>>, 16>;
+      llvm::SmallVector<std::pair<AsyncState, llvm::SmallSet<Node *, 8>>, 4>;
 
   // Each node is a task
   // Note: after SFG is done, each node here should hold a TaskLaunchRecord.
