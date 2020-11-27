@@ -226,8 +226,10 @@ void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
     if (latest_state_owner_.find(input_state) == latest_state_owner_.end()) {
       latest_state_owner_[input_state] = initial_node_;
     }
+    // latest_state_owner_[input_state] = initial_node_;
     insert_edge(latest_state_owner_[input_state], node.get(), input_state);
   }
+  /*
   for (auto output_state : node->meta->output_states) {
     if (get_or_insert(latest_state_readers_, output_state).empty()) {
       if (latest_state_owner_.find(output_state) != latest_state_owner_.end()) {
@@ -250,7 +252,8 @@ void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
   for (auto input_state : node->meta->input_states) {
     insert(latest_state_readers_, input_state, node.get());
   }
-  nodes_.push_back(std::move(node));
+   */
+  nodes_.emplace_back(std::move(node));
 }
 
 void StateFlowGraph::insert_edge(Node *from, Node *to, AsyncState state) {
@@ -379,14 +382,7 @@ bool StateFlowGraph::optimize_listgen() {
     delete_nodes(nodes_to_delete);
     // Note: DO NOT topo sort the nodes here. Node deletion destroys order
     // independency.
-    while (true) {
-      TI_P(nodes_.size());
-      auto t = Time::get_time();
-      rebuild_graph(/*sort=*/false);
-      auto rebuild_t = Time::get_time() - t;
-      TI_INFO("total time {} ms; per_node {} us", rebuild_t * 1000,
-              1e6 * rebuild_t / nodes_.size());
-    }
+    rebuild_graph(/*sort=*/false);
   }
 
   return modified;
@@ -1378,8 +1374,8 @@ void StateFlowGraph::benchmark_rebuild_graph() {
     for (int i = 0; i < 100; i++)
       rebuild_graph(/*sort=*/false);
     auto rebuild_t = Time::get_time() - t;
-    TI_INFO("nodes = {} total time {:.4f} us; per_node {:.4f} us", nodes_.size(),
-            rebuild_t * 1e4, 1e4 * rebuild_t / nodes_.size());
+    TI_INFO("nodes = {} total time {:.4f} ns; per_node {:.4f} ns",
+            nodes_.size(), rebuild_t * 1e7, 1e7 * rebuild_t / nodes_.size());
   }
 }
 

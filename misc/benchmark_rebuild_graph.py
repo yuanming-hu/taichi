@@ -18,6 +18,6 @@ def foo():
     e[None] += 1
     f[None] += 1
     
-for i in range(100):
+for i in range(1000):
     foo()
 ti.sync()
