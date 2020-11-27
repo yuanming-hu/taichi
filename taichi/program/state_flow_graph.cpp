@@ -30,7 +30,7 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
       [&s](const SFGStateToNodes::value_type &v) { return v.first == s; });
 }
 
-TI_FORCE_INLINE std::pair<SFGStateToNodes::value_type::second_type *, bool>
+std::pair<SFGStateToNodes::value_type::second_type *, bool>
 insert(SFGStateToNodes &m, const AsyncState &s) {
   auto itr = find(m, s);
   if (itr != m.end()) {
@@ -40,7 +40,7 @@ insert(SFGStateToNodes &m, const AsyncState &s) {
   return std::make_pair(&(m.back().second), false);
 }
 
-TI_FORCE_INLINE SFGStateToNodes::value_type::second_type &get_or_insert(
+SFGStateToNodes::value_type::second_type &get_or_insert(
     SFGStateToNodes &m,
     const AsyncState &s) {
   // get_or_insert() implies that the user doesn't care whether |s| is already
@@ -379,7 +379,12 @@ bool StateFlowGraph::optimize_listgen() {
     delete_nodes(nodes_to_delete);
     // Note: DO NOT topo sort the nodes here. Node deletion destroys order
     // independency.
-    rebuild_graph(/*sort=*/false);
+    while (true) {
+      TI_P(nodes_.size());
+      auto t = Time::get_time();
+      rebuild_graph(/*sort=*/false);
+      TI_P(Time::get_time() - t);
+    }
   }
 
   return modified;
