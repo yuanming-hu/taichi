@@ -30,9 +30,8 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
       [&s](const SFGStateToNodes::value_type &v) { return v.first == s; });
 }
 
-std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
-    SFGStateToNodes &m,
-    const AsyncState &s) {
+TI_FORCE_INLINE std::pair<SFGStateToNodes::value_type::second_type *, bool>
+insert(SFGStateToNodes &m, const AsyncState &s) {
   auto itr = find(m, s);
   if (itr != m.end()) {
     return std::make_pair(&(itr->second), true);
@@ -41,8 +40,9 @@ std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
   return std::make_pair(&(m.back().second), false);
 }
 
-SFGStateToNodes::value_type::second_type &get_or_insert(SFGStateToNodes &m,
-                                                        const AsyncState &s) {
+TI_FORCE_INLINE SFGStateToNodes::value_type::second_type &get_or_insert(
+    SFGStateToNodes &m,
+    const AsyncState &s) {
   // get_or_insert() implies that the user doesn't care whether |s| is already
   // in |m|, so we just return the mapped value. This is functionally equivalent
   // to a (unordered) map's operator[].
@@ -221,6 +221,7 @@ void StateFlowGraph::insert_tasks(const std::vector<TaskLaunchRecord> &records,
 }
 
 void StateFlowGraph::insert_node(std::unique_ptr<StateFlowGraph::Node> &&node) {
+  TI_AUTO_PROF
   for (auto input_state : node->meta->input_states) {
     if (latest_state_owner_.find(input_state) == latest_state_owner_.end()) {
       latest_state_owner_[input_state] = initial_node_;
@@ -691,6 +692,7 @@ bool StateFlowGraph::fuse() {
 
 void StateFlowGraph::rebuild_graph(bool sort) {
   TI_AUTO_PROF;
+  TI_P(nodes_.size());
   if (sort)
     topo_sort_nodes();
   std::vector<TaskLaunchRecord> tasks;
