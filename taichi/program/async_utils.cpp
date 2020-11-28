@@ -128,7 +128,6 @@ void TaskMeta::print() const {
 }
 
 TaskMeta *get_task_meta(IRBank *ir_bank, const TaskLaunchRecord &t) {
-  TI_AUTO_PROF
   // TODO: this function should ideally take only an IRNode
   static std::mutex mut;
 

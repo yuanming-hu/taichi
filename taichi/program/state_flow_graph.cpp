@@ -33,15 +33,6 @@ SFGStateToNodes::iterator find(SFGStateToNodes &m, const AsyncState &s) {
 std::pair<SFGStateToNodes::value_type::second_type *, bool> insert(
     SFGStateToNodes &m,
     const AsyncState &s) {
-  /*
-  auto itr = find(m, s);
-  if (itr != m.end()) {
-    return std::make_pair(&(itr->second), true);
-  }
-  m.push_back(std::make_pair(s, SFGStateToNodes::value_type::second_type{}));
-  return std::make_pair(&(m.back().second), false);
-  */
-
   int sz = m.size();
   for (int i = 0; i < sz; i++) {
     if (m[i].first == s) {
@@ -1376,7 +1367,7 @@ void StateFlowGraph::mark_list_as_dirty(SNode *snode) {
 }
 
 void StateFlowGraph::benchmark_rebuild_graph() {
-  for (int k = 0; k < 10; k++) {
+  for (int k = 0; k < 100000; k++) {
     auto t = Time::get_time();
     for (int i = 0; i < 100; i++)
       rebuild_graph(/*sort=*/false);
