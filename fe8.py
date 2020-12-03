@@ -29,9 +29,11 @@ def compute_p():  # transition probability of S
             d = Snext - Snext_AR
             pdf = 1 / (sigma * ti.sqrt(2 * math.pi)) * ti.exp(-0.5 *
                                                               (d / sigma)**2)
+            # print('d', d, 'pdf', pdf)
             p[i, j] = pdf
             tot += pdf
 
+        # print(tot)
         for j in range(nS + 1):  # normalize
             p[i, j] /= tot
 
@@ -47,7 +49,7 @@ def compute_Jt(t: ti.i32):
             for l in range(nS + 1):
                 val = x * (rho *
                            (S - Sbar) + Sbar - lamb * x) + J[t + 1, l, j - k]
-                E += p[j, l] * val
+                E += p[i, l] * val
             J[t, i, j] = max(J[t, i, j], E)
 
 
@@ -77,16 +79,18 @@ def plot(t):
         for j in range(nW):
             W = j / nW
             Ws.append(W)
-            J_ana = -lamb * W * W / 2 + (
+            J_ana = -lamb * W * W / 2  + (
                 (rho * (1 + rho) / 2) * (S - Sbar) +
                 Sbar) * W + rho**2 * (1 - rho)**2 * (S - Sbar)**2 / (8 * lamb)
-            analytical.append()
+            analytical.append(J_ana)
             dp.append(J[t, i, j])
         plt.plot(Ws, dp, label='DP')
         plt.plot(Ws, analytical, label='analytical')
+    print(dp)
+    print(analytical)
     plt.legend()
+    plt.title(f'S={S}')
     plt.show()
 
 
-print(J.to_numpy())
 plot(23)
