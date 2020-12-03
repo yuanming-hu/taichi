@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 ti.init(arch=ti.cuda)
 
-nS = 200
-nW = 200
+nS = 50
+nW = 50
 
 T = 24
 Sbar = 1.0
