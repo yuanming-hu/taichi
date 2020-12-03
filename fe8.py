@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 ti.init(arch=ti.cuda)
 
-nS = 50
-nW = 50
+nS = 300
+nW = 300
 
 T = 24
 Sbar = 1.0
@@ -71,12 +71,12 @@ for t in reversed(range(T)):
 
 def plot(t):
     # for i in [0, nS // 4, nS // 2, nS * 3 // 4, nS]:
-    for i in [0]:
+    for i in [nS // 3 * 2]:
         S = i / nS * 2
         analytical = []
         Ws = []
         dp = []
-        for j in range(nW):
+        for j in range(10, nW, 20):
             W = j / nW
             Ws.append(W)
             J_ana = -lamb * W * W / 2  + (
@@ -84,8 +84,8 @@ def plot(t):
                 Sbar) * W + rho**2 * (1 - rho)**2 * (S - Sbar)**2 / (8 * lamb)
             analytical.append(J_ana)
             dp.append(J[t, i, j])
-        plt.plot(Ws, dp, label='DP')
-        plt.plot(Ws, analytical, label='analytical')
+        plt.plot(Ws, dp, '.', label='DP')
+        plt.plot(Ws, analytical, '-', label='analytical')
     print(dp)
     print(analytical)
     plt.legend()
