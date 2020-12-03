@@ -70,8 +70,8 @@ for t in reversed(range(T)):
 
 
 def plot(t):
-    # for i in [0, nS // 4, nS // 2, nS * 3 // 4, nS]:
-    for i in [nS // 3 * 2]:
+    colors = 'rgbc'
+    for i, c in zip([nS // 4, nS // 2, nS * 3 // 4, nS], range(4)):
         S = i / nS * 2
         analytical = []
         Ws = []
@@ -84,12 +84,12 @@ def plot(t):
                 Sbar) * W + rho**2 * (1 - rho)**2 * (S - Sbar)**2 / (8 * lamb)
             analytical.append(J_ana)
             dp.append(J[t, i, j])
-        plt.plot(Ws, dp, '.', label='DP')
-        plt.plot(Ws, analytical, '-', label='analytical')
+        plt.plot(Ws, dp, colors[c] + '.', label=f'DP  S={S:.3f}')
+        plt.plot(Ws, analytical, colors[c] + '-', label=f'ANA S={S:.3f}')
     print(dp)
     print(analytical)
+    plt.title('DP v.s. analytical')
     plt.legend()
-    plt.title(f'S={S}')
     plt.show()
 
 
