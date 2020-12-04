@@ -1,17 +1,21 @@
 import taichi as ti
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 
-ti.init(arch=ti.cuda, debug=True)
+ti.init(arch=ti.cuda)
 
 nS = 300
-nW = 200
+nW = 500
 
 T = 24
 Sbar = 1.0
 rho = 0.99
 sigma = 0.01
 lamb = 0.01
+
+W_scale = 10
+W_offset = -W_scale / 2 + 0.5
 
 J = ti.field(dtype=ti.f32, shape=(T + 1, nS + 1, nW + 1))
 opt = ti.field(dtype=ti.f32, shape=(T + 1, nS + 1, nW + 1))
@@ -43,7 +47,7 @@ def compute_Jt(t: ti.i32):
         J[t, i, j] = -1e30
         S = i / nS * 2
         for k in range(nW + 1):
-            x = (j - k) / nW * 5
+            x = (j - k) / nW * W_scale
             E = 0.0  # expectation
             for l in range(nS + 1):
                 val = x * (rho * (S - Sbar) + Sbar - lamb * x) + J[t + 1, l, k]
@@ -57,7 +61,7 @@ def compute_Jt(t: ti.i32):
 def compute_JT():
     for i, j in ti.ndrange(nS + 1, nW + 1):
         S = i / nS * 2
-        x = j / nW * 5 - 2
+        x = j / nW * W_scale + W_offset
         val = x * (rho * (S - Sbar) + Sbar - lamb * x)
         J[T, i, j] = val
 
@@ -79,7 +83,7 @@ def plot_J(t):
         Ws = []
         dp = []
         for j in range(0, nW, 1):
-            W = j / nW * 5 - 2
+            W = j / nW * W_scale + W_offset
             Ws.append(W)
             if t == T - 1:
                 J_ana = -lamb * W * W / 2 + (
@@ -108,27 +112,30 @@ def plot_J(t):
     plt.show()
 
 
-def plot_policy():
+def plot_policy(t):
     colors = 'rgbcym'
-    for j, c in zip([nW // 6, nW // 3, nW // 2, 2 * nW // 3, nW * 5 // 6, nW],
-                    range(6)):
-        W = j / nW * 5 - 2
+    for W, c in zip([0.0, 0.4, 0.8, 1.2, 1.6, -0.4], range(6)):
         analytical = []
         Ss = []
         dp = []
-        for i in range(0, nS, 1):
+        for i in range(nS // 4, 3 * nS // 4, 1):
             S = i / nS * 2
             Ss.append(S)
 
             D = (S - Sbar)
-            x_ana = W / 3 + (rho * D * (2 - rho * (1 + rho))) / (6 * lamb)
-            # x_ana = W / 2 + ((rho * (1-rho) * D)) / (4 * lamb)
-
-            analytical.append(x_ana)
-            dp.append(opt[22, i, j])
-        plt.plot(Ss, dp, colors[c] + '.', label=f'DP  W={W:.3f}')
-        plt.plot(Ss, analytical, colors[c] + '-', label=f'ANA W={W:.3f}')
-    plt.title('DP v.s. analytical optimal policy')
+            if t == 22:
+                x_ana = W / 3 + (rho * D * (2 - rho * (1 + rho))) / (6 * lamb)
+                # x_ana = W / 2 + ((rho * (1-rho) * D)) / (4 * lamb)
+                analytical.append(x_ana)
+            dp.append(opt[t, i, int((W - W_offset) / W_scale * nW)])
+        if t == 22:
+            plt.plot(Ss, analytical, colors[c] + '-', label=f'ANA W={W:.3f}')
+        f = '.' if t == 22 else '-'
+        plt.plot(Ss, dp, colors[c] + f, label=f'DP  W={W:.3f}')
+    if t == 22:
+        plt.title('DP v.s. analytical optimal policy')
+    else:
+        plt.title('Optimal policy at t = T/2')
     plt.ylabel('x^*')
     plt.xlabel('S')
     plt.legend()
@@ -136,4 +143,58 @@ def plot_policy():
 
 
 # plot_a(t=23)
-plot_policy()
+# plot_policy(t=T - 2)
+# plot_policy(t=T // 2)
+
+
+def plot_policy_w():
+    Ws = []
+    dp = []
+    for i in range(0, nW, nW // 30):
+        W = i / nW * W_scale + W_offset
+        Ws.append(W)
+        dp.append(opt[T // 2, nS // 2, i])
+
+    plt.plot(Ws, dp)
+    plt.ylabel('x^*')
+    plt.xlabel('W')
+    plt.legend()
+    plt.show()
+
+
+# plot_policy_w()
+
+
+def draw():
+    S = 1
+    W_dp = 1
+    W_uniform = 1
+    P_dp = 0
+    P_uniform = 0
+
+    for t in range(1, T + 1):
+        S = Sbar + (S - Sbar) * rho + np.random.normal() * sigma
+        i = min(max(0, int(S / 2 * nS + 0.5)), nS)
+        j = max(min(int((W_dp - W_offset) / W_scale * nW + 0.5), nW), 0)
+        if t == T:
+            x = W_dp
+        else:
+            x = opt[t, i, j]
+        W_dp -= x
+        W_uniform -= 1 / T
+        P_dp += x * (S - lamb * x)
+        P_uniform += 1 / T * (S - lamb * 1 / T)
+
+    print(P_dp, P_uniform)
+    return P_dp - P_uniform
+
+
+def simulate():
+    diff = 0
+    for i in range(10000):
+        diff += draw()
+    print(diff / 10000)
+
+
+simulate()
+# print(J[0, nS // 2, int((1 - W_offset) / W_scale * nW)])
