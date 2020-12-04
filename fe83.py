@@ -21,8 +21,8 @@ K = 0.0001
 def advance(S, x):
     assert S.shape == x.shape
     v_t = np.exp(x)
-    es = np.random.normal(shape=S.shape)
-    ev = np.random.normal(shape=S.shape)
+    es = np.random.normal(size=S.size)
+    ev = np.random.normal(size=S.size)
 
     new_S = S * np.exp((r_f - 0.5 * v_t**2) * dt + v_t * np.sqrt(dt) * es)
     eta_st = (u_s - r_f) / v_t
@@ -51,12 +51,12 @@ def compute_price():
     rv = {}
 
     def RV(t):
-        s = 0
+        s = np.zeros_like(S[0])
         c = 0
         for u in range(max(1, t - 10), t):
             c += 1
             s += (np.log(S[u]) - np.log(S[u - 1]))**2
-        return s / c
+        return s / max(c, 1)
 
     for i in range(T + 1):
         rv[i] = RV(i)
@@ -82,16 +82,16 @@ def compute_price():
 
     payoffs = {
         t: np.where(CV[t] < underlying[t], underlying[t], 0)
-        for t in range(1, m + 1)
+        for t in range(1, T + 1)
     }
     payoffs = np.vstack(payoffs.values())
 
     idx_payoffs = np.argmax(payoffs > 0, axis=0)
     first_payoff = one_hot(idx_payoffs, T).T * payoffs
 
-    T_range = np.array(range(T)).shape(-1, 1)
+    T_range = np.array(range(T)).reshape(-1, 1)
     discounted_payoff = first_payoff * np.exp(-r_f * T_range * dt)
     return discounted_payoff.sum() / n_paths
 
 
-print(f'Price=compute_price()')
+print(f'Price={compute_price()}')
