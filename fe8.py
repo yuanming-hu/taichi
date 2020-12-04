@@ -29,11 +29,9 @@ def compute_p():  # transition probability of S
             d = Snext - Snext_AR
             pdf = 1 / (sigma * ti.sqrt(2 * math.pi)) * ti.exp(-0.5 *
                                                               (d / sigma)**2)
-            # print('d', d, 'pdf', pdf)
             p[i, j] = pdf
             tot += pdf
 
-        # print(tot)
         for j in range(nS + 1):  # normalize
             p[i, j] /= tot
 
@@ -70,18 +68,30 @@ for t in reversed(range(T)):
 
 
 def plot(t):
-    colors = 'rgbc'
-    for i, c in zip([nS // 4, nS // 2, nS * 3 // 4, nS], range(4)):
+    colors = 'rgbcym'
+    for i, c in zip([nS // 6, nS // 3, nS // 2, 2 * nS // 3, nS * 5 // 6, nS],
+                    range(6)):
         S = i / nS * 2
         analytical = []
         Ws = []
         dp = []
-        for j in range(10, nW, 20):
+        for j in range(0, nW, 1):
             W = j / nW
             Ws.append(W)
-            J_ana = -lamb * W * W / 2  + (
-                (rho * (1 + rho) / 2) * (S - Sbar) +
-                Sbar) * W + rho**2 * (1 - rho)**2 * (S - Sbar)**2 / (8 * lamb)
+            if t == T - 1:
+                J_ana = -lamb * W * W / 2 + (
+                    (rho * (1 + rho) / 2) * (S - Sbar) + Sbar) * W + rho**2 * (
+                        1 - rho)**2 * (S - Sbar)**2 / (8 * lamb)
+            elif t == T - 2:
+                D = (S - Sbar)
+                J_ana = -lamb * W * W / 6 + 1 / 3 * (
+                    3 * Sbar + rho * D *
+                    (1 + rho *
+                     (1 + rho))) * W + rho**2 * (1 - rho)**2 * D**2 * (
+                         rho**4 - rho**2 - 2 * rho + 2) / (4 * lamb)
+            else:
+                raise ValueError()
+
             analytical.append(J_ana)
             dp.append(J[t, i, j])
         plt.plot(Ws, dp, colors[c] + '.', label=f'DP  S={S:.3f}')
@@ -93,4 +103,4 @@ def plot(t):
     plt.show()
 
 
-plot(23)
+plot(t=23)
