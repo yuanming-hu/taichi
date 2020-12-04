@@ -2,10 +2,10 @@ import taichi as ti
 import math
 import matplotlib.pyplot as plt
 
-ti.init(arch=ti.cuda)
+ti.init(arch=ti.cuda, debug=True)
 
-nS = 300
-nW = 300
+nS = 100
+nW = 900
 
 T = 24
 Sbar = 1.0
@@ -15,8 +15,8 @@ lamb = 0.01
 
 
 
-J = ti.field(dtype=ti.f32, shape=(T + 1, nW + 1, nS + 1))
-opt = ti.field(dtype=ti.f32, shape=(T + 1, nW + 1, nS + 1))
+J = ti.field(dtype=ti.f32, shape=(T + 1, nS + 1, nW + 1))
+opt = ti.field(dtype=ti.f32, shape=(T + 1, nS + 1, nW + 1))
 
 p = ti.field(dtype=ti.f32, shape=(nS + 1, nS + 1))
 
@@ -44,12 +44,12 @@ def compute_Jt(t: ti.i32):
     for i, j in ti.ndrange(nS + 1, nW + 1):
         J[t, i, j] = -1e30
         S = i / nS * 2
-        for k in range(j + 1):
-            x = k / nW
+        for k in range(nW + 1):
+            x = (j - k) / nW * 5
             E = 0.0  # expectation
             for l in range(nS + 1):
                 val = x * (rho *
-                           (S - Sbar) + Sbar - lamb * x) + J[t + 1, l, j - k]
+                           (S - Sbar) + Sbar - lamb * x) + J[t + 1, l, k]
                 E += p[i, l] * val
             if E > J[t, i, j]:
                 opt[t, i, j] = x
@@ -59,8 +59,8 @@ def compute_Jt(t: ti.i32):
 @ti.kernel
 def compute_JT():
     for i, j in ti.ndrange(nS + 1, nW + 1):
-        S = i / nS
-        x = j / nW
+        S = i / nS * 2
+        x = j / nW * 5 - 2
         val = x * (rho * (S - Sbar) + Sbar - lamb * x)
         J[T, i, j] = val
 
@@ -83,7 +83,7 @@ def plot_J(t):
         Ws = []
         dp = []
         for j in range(0, nW, 1):
-            W = j / nW
+            W = j / nW * 5 - 2
             Ws.append(W)
             if t == T - 1:
                 J_ana = -lamb * W * W / 2 + (
@@ -115,19 +115,20 @@ def plot_policy():
     colors = 'rgbcym'
     for j, c in zip([nW // 6, nW // 3, nW // 2, 2 * nW // 3, nW * 5 // 6, nW],
                     range(6)):
-        W = j / nW
+        W = j / nW * 5 - 2
         analytical = []
         Ss = []
         dp = []
-        for i in range(0, nW, 1):
+        for i in range(0, nS, 1):
             S = i / nS * 2
             Ss.append(S)
             
             D = (S - Sbar)
-            x_ana = max(0, W / 3 + (rho * D * (2 - rho * (1+rho))) / (6 * lamb))
+            x_ana = W / 3 + (rho * D * (2 - rho * (1+rho))) / (6 * lamb)
+            # x_ana = W / 2 + ((rho * (1-rho) * D)) / (4 * lamb)
             
             analytical.append(x_ana)
-            dp.append(opt[t, i, j])
+            dp.append(opt[22, i, j])
         plt.plot(Ss, dp, colors[c] + '.', label=f'DP  W={W:.3f}')
         plt.plot(Ss, analytical, colors[c] + '-', label=f'ANA W={W:.3f}')
     plt.title('DP v.s. analytical optimal policy')
