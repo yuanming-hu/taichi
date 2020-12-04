@@ -13,7 +13,10 @@ rho = 0.99
 sigma = 0.01
 lamb = 0.01
 
+
+
 J = ti.field(dtype=ti.f32, shape=(T + 1, nW + 1, nS + 1))
+opt = ti.field(dtype=ti.f32, shape=(T + 1, nW + 1, nS + 1))
 
 p = ti.field(dtype=ti.f32, shape=(nS + 1, nS + 1))
 
@@ -48,7 +51,9 @@ def compute_Jt(t: ti.i32):
                 val = x * (rho *
                            (S - Sbar) + Sbar - lamb * x) + J[t + 1, l, j - k]
                 E += p[i, l] * val
-            J[t, i, j] = max(J[t, i, j], E)
+            if E > J[t, i, j]:
+                opt[t, i, j] = x
+                J[t, i, j] = E
 
 
 @ti.kernel
@@ -60,6 +65,7 @@ def compute_JT():
         J[T, i, j] = val
 
 
+opt.fill(-1)
 compute_p()
 
 compute_JT()
@@ -67,7 +73,8 @@ for t in reversed(range(T)):
     compute_Jt(t)
 
 
-def plot(t):
+
+def plot_J(t):
     colors = 'rgbcym'
     for i, c in zip([nS // 6, nS // 3, nS // 2, 2 * nS // 3, nS * 5 // 6, nS],
                     range(6)):
@@ -99,8 +106,36 @@ def plot(t):
     print(dp)
     print(analytical)
     plt.title('DP v.s. analytical')
+    plt.xlabel('x')
+    plt.ylabel('J')
+    plt.legend()
+    plt.show()
+    
+def plot_policy():
+    colors = 'rgbcym'
+    for j, c in zip([nW // 6, nW // 3, nW // 2, 2 * nW // 3, nW * 5 // 6, nW],
+                    range(6)):
+        W = j / nW
+        analytical = []
+        Ss = []
+        dp = []
+        for i in range(0, nW, 1):
+            S = i / nS * 2
+            Ss.append(S)
+            
+            D = (S - Sbar)
+            x_ana = max(0, W / 3 + (rho * D * (2 - rho * (1+rho))) / (6 * lamb))
+            
+            analytical.append(x_ana)
+            dp.append(opt[t, i, j])
+        plt.plot(Ss, dp, colors[c] + '.', label=f'DP  W={W:.3f}')
+        plt.plot(Ss, analytical, colors[c] + '-', label=f'ANA W={W:.3f}')
+    plt.title('DP v.s. analytical optimal policy')
+    plt.ylabel('x^*')
+    plt.xlabel('S')
     plt.legend()
     plt.show()
 
 
-plot(t=23)
+# plot_a(t=23)
+plot_policy()
