@@ -1,7 +1,7 @@
 import taichi as ti
 
 n = 4
-ti.init(arch=ti.cuda)
+ti.init(arch=ti.cuda, print_kernel_llvm_ir=True, print_kernel_llvm_ir_optimized=True, print_ir=True)
 x = ti.field(ti.i32)
 l = ti.field(ti.i32, shape=n)
 
