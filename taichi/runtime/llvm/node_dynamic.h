@@ -63,6 +63,9 @@ i32 Dynamic_append(Ptr meta_, Ptr node_, i32 data) {
   auto node = (DynamicNode *)(node_);
   auto chunk_size = meta->chunk_size;
   auto i = atomic_add_i32(&node->n, 1);
+  taichi_printf(nullptr,
+                "node %lld  node->n addr=%lld  atomic_add result i=%d\n",
+                (uint64)node, (uint64)&node->n, i);
   int chunk_start = 0;
   auto p_chunk_ptr = &node->ptr;
   while (true) {
@@ -72,6 +75,7 @@ i32 Dynamic_append(Ptr meta_, Ptr node_, i32 data) {
           auto rt = meta->context->runtime;
           auto alloc = rt->node_allocators[meta->snode_id];
           *p_chunk_ptr = alloc->allocate();
+          taichi_printf(nullptr, "allocated chunk %lld\n", (uint64)*p_chunk_ptr);
         }
       });
     }
